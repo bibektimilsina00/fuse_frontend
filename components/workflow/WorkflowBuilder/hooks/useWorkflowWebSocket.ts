@@ -37,7 +37,8 @@ export function useWorkflowWebSocket(executionId: string | null, onMessage?: (me
             socketRef.current.close()
         }
 
-        const wsUrl = `ws://localhost:8000/api/v1/workflows/ws/${executionId}`
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5678'
+        const wsUrl = apiUrl.replace('http://', 'ws://').replace('https://', 'wss://') + `/api/v1/workflows/ws/${executionId}`
         const socket = new WebSocket(wsUrl)
         socketRef.current = socket
 

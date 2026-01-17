@@ -2,11 +2,11 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useCurrentUser } from '@/services/queries/auth'
+import { useAuth } from '@/components/providers/AuthProvider'
 
 export default function HomePage() {
     const router = useRouter()
-    const { data: user, isLoading } = useCurrentUser()
+    const { user, isLoading } = useAuth()
 
     useEffect(() => {
         if (!isLoading) {

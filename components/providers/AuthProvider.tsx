@@ -14,13 +14,17 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const { data: user, isLoading } = useCurrentUser()
+    const { data: user, isLoading, error } = useCurrentUser()
     const logoutMutation = useLogout()
 
+    // If we get a 401 error, treat as not authenticated (don't keep retrying)
+    const effectiveUser = error ? null : (user ?? null)
+    const effectiveLoading = error ? false : isLoading
+
     const value: AuthContextType = {
-        user: user ?? null,
-        isLoading,
-        isAuthenticated: !!user,
+        user: effectiveUser,
+        isLoading: effectiveLoading,
+        isAuthenticated: !!effectiveUser,
         logout: () => logoutMutation.mutate(),
     }
 

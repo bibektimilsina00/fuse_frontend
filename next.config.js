@@ -5,8 +5,8 @@ const allowedDevOrigins = process.env.NEXT_ALLOWED_DEV_ORIGINS
 
 const nextConfig = {
     reactStrictMode: true,
-    ssr: true,  // Keep SSR enabled for dynamic routes
-    distDir: 'out',    // Output directory for static export
+    output: 'export',  // Generate static HTML/CSS/JS for bundling with Python
+    trailingSlash: true,  // Required for static export routing
     images: {
         unoptimized: true,  // Required for static export
     },

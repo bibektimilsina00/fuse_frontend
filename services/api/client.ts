@@ -1,6 +1,6 @@
 import { logger } from '@/lib/logger'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5678'
 export const API_V1 = `${API_URL}/api/v1`
 
 /**
@@ -141,8 +141,9 @@ export class ApiClient {
 
             return response.json()
         } catch (error) {
-            // Retry on network errors
-            if (error instanceof TypeError && error.message === 'Failed to fetch' && retryCount < this.retryConfig.maxRetries) {
+            // Retry on network errors, but NOT for auth endpoints (prevents infinite loop)
+            const isAuthEndpoint = endpoint.includes('/users/me') || endpoint.includes('/login')
+            if (error instanceof TypeError && error.message === 'Failed to fetch' && retryCount < this.retryConfig.maxRetries && !isAuthEndpoint) {
                 const delayMs = calculateBackoff(retryCount, this.retryConfig)
                 logger.warn(`Network error on ${endpoint}. Retrying after ${delayMs}ms (attempt ${retryCount + 1})`)
                 await sleep(delayMs)

@@ -1,30 +1,15 @@
-'use client'
+import ClientWrapper from './ClientWrapper'
 
-import { useParams } from 'next/navigation'
-import { ReactFlowProvider } from 'reactflow'
-import { WorkflowBuilder } from '@/components/workflow'
-import { useToast } from '@/components/ui/use-toast'
-import { useWorkflow } from '@/services/queries/workflows'
-import { useSaveState } from '@/components/workflow/WorkflowBuilder/hooks/useSaveState'
-import { useState, useEffect } from 'react'
+// For static export - disable dynamic params
+export const dynamicParams = false
 
-export default function WorkflowBuilderPage() {
-    const params = useParams()
-    const workflowId = params.id as string
-    const { toast } = useToast()
+// Required for static export - returns one placeholder path
+// Client-side navigation will work for any ID
+export async function generateStaticParams() {
+    return [{ id: 'new' }]  // Placeholder for /workflows/new
+}
 
-    // Fetch workflow data to get the name (everything else is handled in the builder hook)
-    const { data: workflowData } = useWorkflow(workflowId)
-
-    return (
-        <ReactFlowProvider>
-            <div className="h-screen">
-                <WorkflowBuilder
-                    workflowId={workflowId}
-                    workflowName={workflowData?.meta?.name}
-                    onBack={() => { window.history.back() }}
-                />
-            </div>
-        </ReactFlowProvider>
-    )
+// Server component that renders the client wrapper
+export default function Page() {
+    return <ClientWrapper />
 }
