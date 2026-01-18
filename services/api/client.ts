@@ -136,7 +136,21 @@ export class ApiClient {
 
             if (!response.ok) {
                 const error = await response.json().catch(() => ({ detail: 'An error occurred' }))
-                throw new Error(error.detail || `HTTP error! status: ${response.status}`)
+                // Handle FastAPI validation errors (array of objects)
+                let errorMessage: string
+                if (Array.isArray(error.detail)) {
+                    // FastAPI validation errors are like: [{loc: ["body", "email"], msg: "invalid email", type: "value_error"}]
+                    errorMessage = error.detail.map((e: { msg?: string; message?: string }) => e.msg || e.message || 'Validation error').join('. ')
+                } else if (typeof error.detail === 'string') {
+                    errorMessage = error.detail
+                } else if (error.detail?.msg) {
+                    errorMessage = error.detail.msg
+                } else if (error.message) {
+                    errorMessage = error.message
+                } else {
+                    errorMessage = `HTTP error! status: ${response.status}`
+                }
+                throw new Error(errorMessage)
             }
 
             return response.json()
@@ -181,7 +195,20 @@ export class ApiClient {
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({ detail: 'An error occurred' }))
-            throw new Error(error.detail || `HTTP error! status: ${response.status}`)
+            // Handle FastAPI validation errors (array of objects)
+            let errorMessage: string
+            if (Array.isArray(error.detail)) {
+                errorMessage = error.detail.map((e: { msg?: string; message?: string }) => e.msg || e.message || 'Validation error').join('. ')
+            } else if (typeof error.detail === 'string') {
+                errorMessage = error.detail
+            } else if (error.detail?.msg) {
+                errorMessage = error.detail.msg
+            } else if (error.message) {
+                errorMessage = error.message
+            } else {
+                errorMessage = `HTTP error! status: ${response.status}`
+            }
+            throw new Error(errorMessage)
         }
 
         return response.json()

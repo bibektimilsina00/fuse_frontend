@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import ReactFlow, { MarkerType } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { AnimatePresence } from 'framer-motion'
@@ -17,7 +17,7 @@ import CustomEdge from './CustomEdge'
 
 // Components
 import { LogsPanel } from './LogsPanel'
-import { AIChatPopup } from './AIChatPopup'
+import { AIAssistant } from '@/components/ai/AIAssistant'
 import { CanvasHeader } from './CanvasHeader'
 import { NavSidebar } from './NavSidebar'
 import { SidebarControls } from './SidebarControls'
@@ -120,6 +120,10 @@ export function WorkflowBuilder({
         setChatMessage,
         chatHistory,
         isAiLoading,
+        selectedAiModel,
+        setSelectedAiModel,
+        selectedAiCredentialId,
+        setSelectedAiCredentialId,
         handleSendChat,
         fitView,
         zoomIn,
@@ -155,6 +159,29 @@ export function WorkflowBuilder({
         setShowNodePanel(false)
         setSearchQuery('')
     }
+
+    // Listen for Quick Add Button events
+    useEffect(() => {
+        const handleAddNodeAfter = (e: any) => {
+            const { source, handleId, target, targetHandle, x, y } = e.detail || {}
+            if (source || target) {
+                setPendingConnection({
+                    source: source || undefined,
+                    sourceHandle: (source ? handleId : undefined),
+                    target: target || undefined,
+                    targetHandle: targetHandle || undefined,
+                    x: x || 0,
+                    y: y || 0
+                })
+                setShowNodePanel(true)
+            }
+        }
+
+        window.addEventListener('addNodeAfter', handleAddNodeAfter as EventListener)
+        return () => {
+            window.removeEventListener('addNodeAfter', handleAddNodeAfter as EventListener)
+        }
+    }, [setPendingConnection, setShowNodePanel])
 
     // --- Render ---
 
@@ -239,6 +266,7 @@ export function WorkflowBuilder({
                     setSearchQuery={setSearchQuery}
                     availableNodeTypes={availableNodeTypes as NodeTypeDefinition[]}
                     onAddNode={handleAddNode}
+                    isWorkflowEmpty={nodes.length === 0}
                 />
 
                 {/* Node Configuration Modal */}
@@ -277,14 +305,14 @@ export function WorkflowBuilder({
                 </AnimatePresence>
             </div>
 
-            <AIChatPopup
+            <AIAssistant
                 isOpen={showChat}
                 onClose={() => setShowChat(false)}
-                messages={chatHistory}
-                isLoading={isAiLoading}
-                input={chatMessage}
-                onInputChange={setChatMessage}
-                onSend={handleSendChat}
+                onCreateWorkflow={async (prompt, model, credentialId) => {
+                    setChatMessage(prompt)
+                    await handleSendChat(prompt, model, credentialId)
+                }}
+                defaultMode="create"
             />
         </div>
     )

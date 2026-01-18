@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react'
+import Image from 'next/image'
+import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useLogin } from '@/services/queries/auth'
@@ -27,66 +27,59 @@ export default function LoginPage() {
     }
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-md"
-        >
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 border border-slate-200 dark:border-slate-700">
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full mb-4">
-                        <LogIn className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                        Welcome Back
-                    </h1>
-                    <p className="text-slate-600 dark:text-slate-400">
-                        Sign in to your account to continue
-                    </p>
+        <div className="w-full max-w-sm">
+            {/* Logo and Brand */}
+            <div className="text-center mb-8">
+                <div className="flex items-center justify-center mb-6">
+                    <Image
+                        src="/logo.png"
+                        alt="Fuse"
+                        width={72}
+                        height={72}
+                        className="object-contain"
+                    />
                 </div>
+                <h1 className="text-xl font-semibold text-foreground">
+                    Sign in to Fuse
+                </h1>
+            </div>
 
+            {/* Login Form */}
+            <div className="bg-card border border-border rounded-lg p-6">
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {loginMutation.isError && (
-                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-start gap-2">
-                            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                            <p className="text-sm text-red-600 dark:text-red-400">
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-red-500">
                                 {loginMutation.error?.message || 'Invalid email or password'}
                             </p>
                         </div>
                     )}
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        <label className="block text-sm text-muted-foreground mb-1.5">
                             Email
                         </label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                            <Input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="you@example.com"
-                                className="pl-10"
-                                required
-                            />
-                        </div>
+                        <Input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="name@example.com"
+                            required
+                        />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        <label className="block text-sm text-muted-foreground mb-1.5">
                             Password
                         </label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                            <Input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                className="pl-10"
-                                required
-                            />
-                        </div>
+                        <Input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                            required
+                        />
                     </div>
 
                     <Button
@@ -96,27 +89,26 @@ export default function LoginPage() {
                     >
                         {loginMutation.isPending ? (
                             <div className="flex items-center justify-center gap-2">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                                 Signing in...
                             </div>
                         ) : (
-                            'Sign In'
+                            'Sign in'
                         )}
                     </Button>
                 </form>
-
-                <div className="mt-6 text-center">
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Don't have an account?{' '}
-                        <Link
-                            href="/auth/register"
-                            className="text-purple-600 dark:text-purple-400 hover:underline font-medium"
-                        >
-                            Sign up
-                        </Link>
-                    </p>
-                </div>
             </div>
-        </motion.div>
+
+            {/* Sign up link */}
+            <p className="text-center text-sm text-muted-foreground mt-6">
+                New to Fuse?{' '}
+                <Link
+                    href="/auth/register"
+                    className="text-primary hover:underline"
+                >
+                    Create an account
+                </Link>
+            </p>
+        </div>
     )
 }

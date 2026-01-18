@@ -92,10 +92,10 @@ export function useWorkflowsPage() {
     const saveWorkflow = useSaveWorkflow()
     const generateWithAI = useGenerateWorkflowWithAI()
 
-    const handleGenerateWithAI = async (prompt: string) => {
+    const handleGenerateWithAI = async (prompt: string, model?: string, credentialId?: string) => {
         try {
             // 1. Generate the workflow nodes/edges from AI
-            const aiResult = await generateWithAI.mutateAsync({ prompt })
+            const aiResult = await generateWithAI.mutateAsync({ prompt, model, credentialId })
             logger.info('AI Generation Result:', aiResult)
 
             // 2. Create a new empty workflow

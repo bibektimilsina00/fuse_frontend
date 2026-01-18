@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import {
     MoreVertical,
     Play,
@@ -9,15 +10,19 @@ import {
     Copy,
     Clock,
     CheckCircle2,
-    Calendar
+    Calendar,
+    User,
+    Tag,
+    ExternalLink,
+    Zap
 } from 'lucide-react'
 import { Workflow } from '@/types/workflow'
 import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/DropdownMenu'
 import { cn } from '@/lib/utils'
@@ -40,138 +45,184 @@ export const WorkflowCard: React.FC<WorkflowCardProps> = ({
     viewMode = 'grid'
 }) => {
     const isActive = workflow.status === 'active'
+    const isDraft = workflow.status === 'draft'
+
+    if (viewMode === 'list') {
+        return null // List view is handled by WorkflowRow in WorkflowsContent
+    }
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
             whileHover={{ y: -4 }}
             transition={{ duration: 0.2 }}
         >
-            <Card className={cn(
-                "group relative overflow-hidden transition-all hover:shadow-md border-border/50 hover:border-border",
-                viewMode === 'list' ? "flex items-center gap-6" : ""
-            )}>
+            <div className="group relative overflow-hidden rounded-xl border border-border bg-card transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20">
                 {/* Status Indicator Line */}
                 <div className={cn(
                     "absolute left-0 top-0 bottom-0 w-1 transition-colors",
-                    isActive ? "bg-green-500" : "bg-muted"
+                    isActive && "bg-emerald-500",
+                    isDraft && "bg-amber-500",
+                    !isActive && !isDraft && "bg-slate-400"
                 )} />
 
-                <div className={cn("flex-1", viewMode === 'list' ? "flex items-center justify-between gap-6" : "")}>
-                    {/* Header Info */}
-                    <div className={cn("mb-4", viewMode === 'list' && "mb-0 flex-1")}>
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <h3 className="text-lg font-semibold tracking-tight mb-1 group-hover:text-primary transition-colors">
+                {/* Card Content */}
+                <div className="p-5 pl-6">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0 pr-2">
+                            <Link
+                                href={`/workflows/${workflow.id}`}
+                                className="block"
+                            >
+                                <h3 className="text-base font-semibold tracking-tight mb-1 group-hover:text-primary transition-colors truncate">
                                     {workflow.name}
                                 </h3>
-                                {workflow.description && (
-                                    <p className="text-sm text-muted-foreground line-clamp-2">
-                                        {workflow.description}
-                                    </p>
-                                )}
-                            </div>
-                            {viewMode === 'grid' && (
-                                <WorkflowActions
-                                    onEdit={() => onEdit(workflow.id)}
-                                    onDuplicate={() => onDuplicate(workflow.id)}
-                                    onDelete={() => onDelete(workflow.id)}
-                                />
+                            </Link>
+                            {workflow.description && (
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                    {workflow.description}
+                                </p>
                             )}
                         </div>
+                        <WorkflowActions
+                            workflowId={workflow.id}
+                            isActive={isActive}
+                            onEdit={() => onEdit(workflow.id)}
+                            onDuplicate={() => onDuplicate(workflow.id)}
+                            onDelete={() => onDelete(workflow.id)}
+                            onToggle={() => onToggle(workflow.id)}
+                        />
                     </div>
 
-                    {/* Meta Info */}
-                    <div className={cn(
-                        "flex items-center gap-4 text-sm text-muted-foreground",
-                        viewMode === 'grid' ? "mb-4 pb-4 border-b border-border/50" : ""
-                    )}>
-                        <div className="flex items-center gap-1.5">
-                            <CheckCircle2 className="h-4 w-4" />
-                            <span>{workflow.nodes.length} steps</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <Calendar className="h-4 w-4" />
-                            <span>{new Date(workflow.updatedAt).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-
-                    {/* Actions Footer (Grid only) */}
-                    {viewMode === 'grid' && (
-                        <div className="flex items-center justify-between">
-                            <div className={cn(
-                                "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium",
-                                isActive
-                                    ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                                    : "bg-muted text-muted-foreground"
-                            )}>
-                                <div className={cn("h-1.5 w-1.5 rounded-full", isActive ? "bg-green-500" : "bg-slate-400")} />
-                                {isActive ? 'Active' : 'Inactive'}
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => onToggle(workflow.id)}
-                                    className={isActive ? "text-orange-600 hover:text-orange-700 hover:bg-orange-50" : "text-green-600 hover:text-green-700 hover:bg-green-50"}
+                    {/* Tags */}
+                    {workflow.tags && workflow.tags.length > 0 && (
+                        <div className="flex items-center gap-2 mb-4">
+                            {workflow.tags.slice(0, 3).map((tag) => (
+                                <span
+                                    key={tag}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground"
                                 >
-                                    {isActive ? <Pause className="h-4 w-4 mr-1" /> : <Play className="h-4 w-4 mr-1" />}
-                                    {isActive ? 'Pause' : 'Run'}
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => onEdit(workflow.id)}
-                                >
-                                    Edit
-                                </Button>
-                            </div>
+                                    <Tag className="h-3 w-3" />
+                                    {tag}
+                                </span>
+                            ))}
+                            {workflow.tags.length > 3 && (
+                                <span className="text-xs text-muted-foreground">
+                                    +{workflow.tags.length - 3} more
+                                </span>
+                            )}
                         </div>
                     )}
 
-                    {/* List View Actions */}
-                    {viewMode === 'list' && (
+                    {/* Meta Info */}
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground pb-4 mb-4 border-b border-border">
+                        <div className="flex items-center gap-1.5">
+                            <Zap className="h-3.5 w-3.5" />
+                            <span>{workflow.nodes?.length || 0} nodes</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5" />
+                            <span>Updated {new Date(workflow.updatedAt).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between">
+                        {/* Status Badge */}
+                        <div className={cn(
+                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border",
+                            isActive && "status-active",
+                            isDraft && "status-draft",
+                            !isActive && !isDraft && "status-inactive"
+                        )}>
+                            <div className={cn(
+                                "h-1.5 w-1.5 rounded-full",
+                                isActive && "bg-emerald-500",
+                                isDraft && "bg-amber-500",
+                                !isActive && !isDraft && "bg-slate-400"
+                            )} />
+                            {isActive ? 'Active' : isDraft ? 'Draft' : 'Inactive'}
+                        </div>
+
+                        {/* Action Buttons */}
                         <div className="flex items-center gap-2">
                             <Button
                                 variant="ghost"
-                                size="icon"
+                                size="sm"
                                 onClick={() => onToggle(workflow.id)}
+                                className={cn(
+                                    "h-8 px-3",
+                                    isActive
+                                        ? "text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-500/10"
+                                        : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                                )}
                             >
-                                {isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                                {isActive ? <Pause className="h-3.5 w-3.5 mr-1.5" /> : <Play className="h-3.5 w-3.5 mr-1.5" />}
+                                {isActive ? 'Pause' : 'Run'}
                             </Button>
-                            <WorkflowActions
-                                onEdit={() => onEdit(workflow.id)}
-                                onDuplicate={() => onDuplicate(workflow.id)}
-                                onDelete={() => onDelete(workflow.id)}
-                            />
+                            <Link href={`/workflows/${workflow.id}`}>
+                                <Button size="sm" variant="outline" className="h-8 px-3">
+                                    <Edit className="h-3.5 w-3.5 mr-1.5" />
+                                    Edit
+                                </Button>
+                            </Link>
                         </div>
-                    )}
+                    </div>
                 </div>
-            </Card>
+            </div>
         </motion.div>
     )
 }
 
-function WorkflowActions({ onEdit, onDuplicate, onDelete }: { onEdit: () => void, onDuplicate: () => void, onDelete: () => void }) {
+function WorkflowActions({
+    workflowId,
+    isActive,
+    onEdit,
+    onDuplicate,
+    onDelete,
+    onToggle
+}: {
+    workflowId: string
+    isActive: boolean
+    onEdit: () => void
+    onDuplicate: () => void
+    onDelete: () => void
+    onToggle: () => void
+}) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                     <MoreVertical className="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={onEdit}>
                     <Edit className="h-4 w-4 mr-2" />
-                    Edit
+                    Edit Workflow
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onToggle}>
+                    {isActive ? (
+                        <>
+                            <Pause className="h-4 w-4 mr-2" />
+                            Deactivate
+                        </>
+                    ) : (
+                        <>
+                            <Play className="h-4 w-4 mr-2" />
+                            Activate
+                        </>
+                    )}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onDuplicate}>
                     <Copy className="h-4 w-4 mr-2" />
                     Duplicate
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
                 </DropdownMenuItem>

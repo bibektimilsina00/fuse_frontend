@@ -237,7 +237,14 @@ export function useWorkflowBuilder({
     }, [nodes, edges, setNodes, setEdges, saveStateToHistory, selectedNode])
 
     const [splitEdge, setSplitEdge] = useState<{ edgeId: string, x: number, y: number } | null>(null)
-    const [pendingConnection, setPendingConnection] = useState<{ source: string, handleId?: string, x: number, y: number } | null>(null)
+    const [pendingConnection, setPendingConnection] = useState<{
+        source?: string,
+        sourceHandle?: string,
+        target?: string,
+        targetHandle?: string,
+        x: number,
+        y: number
+    } | null>(null)
 
     const handleAddNode = useCallback((nodeType: any) => {
         const initialConfig = nodeType.inputs?.reduce((acc: any, input: any) => {
@@ -281,8 +288,28 @@ export function useWorkflowBuilder({
             }
             setSplitEdge(null)
         } else if (pendingConnection) {
-            newNode.position = { x: pendingConnection.x + 150, y: pendingConnection.y - 40 }
-            nextEdges = [...edges, { id: `edge-${pendingConnection.source}-${newNode.id}`, source: pendingConnection.source, sourceHandle: pendingConnection.handleId, target: newNode.id, type: 'custom' }]
+
+            if (pendingConnection.source) {
+                newNode.position = { x: pendingConnection.x + 150, y: pendingConnection.y - 40 }
+                nextEdges = [...edges, {
+                    id: `edge-${pendingConnection.source}-${newNode.id}`,
+                    source: pendingConnection.source,
+                    sourceHandle: pendingConnection.sourceHandle,
+                    target: newNode.id,
+                    type: 'custom'
+                }]
+            } else if (pendingConnection.target) {
+                // Reverse connection: NewNode -> Node
+                newNode.position = { x: pendingConnection.x, y: pendingConnection.y }
+                nextEdges = [...edges, {
+                    id: `edge-${newNode.id}-${pendingConnection.target}`,
+                    source: newNode.id,
+                    target: pendingConnection.target,
+                    targetHandle: pendingConnection.targetHandle,
+                    type: 'custom'
+                }]
+            }
+
             setPendingConnection(null)
         }
 
@@ -297,13 +324,16 @@ export function useWorkflowBuilder({
     const [chatMessage, setChatMessage] = useState('')
     const [isAiLoading, setIsAiLoading] = useState(false)
     const [chatHistory, setChatHistory] = useState<Array<{ role: 'user' | 'ai', message: string }>>([])
+    const [selectedAiModel, setSelectedAiModel] = useState('openai/gpt-4o-mini')
+    const [selectedAiCredentialId, setSelectedAiCredentialId] = useState<string>('')
 
 
-    const handleSendChat = useCallback(async () => {
-        if (!chatMessage.trim()) return
-        const userMsg = chatMessage
+    const handleSendChat = useCallback(async (prompt?: string, model?: string, credentialId?: string) => {
+        const messageToSend = prompt || chatMessage
+        if (!messageToSend.trim()) return
+
         setChatMessage('')
-        setChatHistory((prev) => [...prev, { role: 'user', message: userMsg }])
+        setChatHistory((prev) => [...prev, { role: 'user', message: messageToSend }])
         setIsAiLoading(true)
 
         try {
@@ -329,7 +359,13 @@ export function useWorkflowBuilder({
                 targetHandle: e.targetHandle,
                 condition: typeof e.label === 'string' ? e.label : undefined
             }))
-            const response = await generateWithAI.mutateAsync({ prompt: userMsg, current_nodes: v2Nodes, current_edges: v2Edges })
+            const response = await generateWithAI.mutateAsync({
+                prompt: messageToSend,
+                current_nodes: v2Nodes,
+                current_edges: v2Edges,
+                model: model || selectedAiModel,
+                credentialId: credentialId || selectedAiCredentialId || undefined
+            })
             const aiMsg = response.suggestions?.join('\n') || 'Workflow updated with generated nodes.'
             setChatHistory((prev) => [...prev, { role: 'ai', message: aiMsg }])
             if (response.nodes && response.edges) {
@@ -603,6 +639,10 @@ export function useWorkflowBuilder({
         setChatMessage,
         chatHistory,
         isAiLoading,
+        selectedAiModel,
+        setSelectedAiModel,
+        selectedAiCredentialId,
+        setSelectedAiCredentialId,
         handleSendChat,
         fitView,
         zoomIn,

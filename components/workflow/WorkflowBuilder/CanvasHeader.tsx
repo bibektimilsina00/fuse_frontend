@@ -1,10 +1,12 @@
 'use client'
 
-import { Save, Code, Zap, Share2, Menu } from 'lucide-react'
+import { Save, Code, Zap, Menu, ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { WorkflowMeta } from '@/types'
 import { SaveStatus } from './hooks/useSaveState'
 import { memo } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
 
 interface CanvasHeaderProps {
     workflowMeta: WorkflowMeta | null
@@ -40,120 +42,106 @@ export const CanvasHeader = memo(({
     setShowNavSidebar
 }: CanvasHeaderProps) => {
 
-    const renderSaveButton = () => {
+    const renderSaveStatus = () => {
         if (isSaving) {
             return (
-                <>
-                    <div className="h-3 w-3 mr-2 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <div className="h-2 w-2 animate-spin rounded-full border border-muted-foreground border-t-transparent" />
                     Saving...
-                </>
+                </span>
             )
         }
 
         if (saveStatus === 'saved' && !isDirty) {
-            return (
-                <>
-                    <Save className="h-3 w-3 mr-2" />
-                    Saved
-                </>
-            )
+            return <span className="text-xs text-muted-foreground">Saved</span>
         }
 
-        if (saveStatus === 'error') {
-            return (
-                <>
-                    <Save className="h-3 w-3 mr-2" />
-                    Retry
-                </>
-            )
+        if (isDirty) {
+            return <span className="text-xs text-muted-foreground">Unsaved changes</span>
         }
 
-        return (
-            <>
-                <Save className="h-3 w-3 mr-2" />
-                {isDirty ? 'Save*' : 'Save'}
-            </>
-        )
+        return null
     }
 
     return (
-        <header className="h-14 border-b border-border bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 z-10 shrink-0">
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={() => setShowNavSidebar(!showNavSidebar)}
-                    className="p-2 hover:bg-accent rounded-lg transition-colors"
-                    aria-label="Toggle navigation"
-                >
-                    <Menu className="h-5 w-5" />
-                </button>
-                <div className="flex flex-col">
+        <header className="h-12 border-b border-border bg-card flex items-center justify-between px-3 z-10 shrink-0">
+            {/* Left - Logo and Workflow Name */}
+            <div className="flex items-center gap-3">
+                <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                    <Image
+                        src="/logo.png"
+                        alt="Fuse"
+                        width={28}
+                        height={28}
+                        className="object-contain"
+                    />
+                </Link>
+
+                <div className="w-px h-5 bg-border" />
+
+                <div className="flex items-center gap-2">
                     <input
                         value={workflowMeta?.name || ''}
                         onChange={(e) => updateWorkflowMeta({ name: e.target.value })}
                         placeholder="Untitled Workflow"
-                        className="font-semibold text-lg bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 rounded px-1 -ml-1 w-64"
+                        className="text-sm font-medium bg-transparent border-none focus:outline-none focus:ring-0 w-48"
                     />
-                    <input
-                        value={workflowMeta?.description || ''}
-                        onChange={(e) => updateWorkflowMeta({ description: e.target.value })}
-                        placeholder="Add description..."
-                        className="text-xs text-muted-foreground bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 rounded px-1 -ml-1 w-96"
-                    />
+                    {renderSaveStatus()}
                 </div>
             </div>
 
-            <div className="flex items-center gap-2">
-                <div className="flex bg-muted rounded-lg p-1 mr-4">
-                    <button
-                        onClick={() => setActiveTab('editor')}
-                        className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${activeTab === 'editor' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                    >
-                        Editor
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('executions')}
-                        className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${activeTab === 'executions' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                    >
-                        Executions
-                    </button>
-                </div>
+            {/* Center - Tab Navigation */}
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
+                <button
+                    onClick={() => setActiveTab('editor')}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-all ${activeTab === 'editor'
+                            ? 'bg-background text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                >
+                    Editor
+                </button>
+                <button
+                    onClick={() => setActiveTab('executions')}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-all ${activeTab === 'executions'
+                            ? 'bg-background text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                >
+                    Executions
+                </button>
+            </div>
 
+            {/* Right - Actions */}
+            <div className="flex items-center gap-2">
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowLogs(!showLogs)}
-                    className={showLogs ? 'bg-accent' : ''}
+                    className={`h-8 text-xs ${showLogs ? 'bg-accent' : ''}`}
                 >
-                    <Code className="h-4 w-4 mr-2" />
+                    <Code className="h-3.5 w-3.5 mr-1.5" />
                     Logs
                 </Button>
-
-                <div className="w-px h-6 bg-border mx-1" />
 
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={toggleActive}
-                    className={isActive ? 'border-primary/50 text-primary hover:bg-primary/10' : ''}
+                    className={`h-8 text-xs ${isActive ? 'border-primary text-primary' : ''}`}
                 >
-                    <Zap className="h-3 w-3 mr-2" />
+                    <Zap className={`h-3.5 w-3.5 mr-1.5 ${isActive ? 'fill-current' : ''}`} />
                     {isActive ? 'Active' : 'Activate'}
                 </Button>
 
                 <Button
                     size="sm"
-                    variant="outline"
                     onClick={onSave}
                     disabled={isSaving}
-                    className={saveStatus === 'saved' && !isDirty ? 'border-green-500/50 text-green-600' : ''}
+                    className="h-8 text-xs"
                 >
-                    {renderSaveButton()}
-                </Button>
-
-                <Button variant="ghost" size="sm">
-                    <Share2 className="h-4 w-4" />
+                    <Save className="h-3.5 w-3.5 mr-1.5" />
+                    Save
                 </Button>
             </div>
         </header>

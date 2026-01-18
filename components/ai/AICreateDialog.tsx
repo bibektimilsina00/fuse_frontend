@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Sparkles, Send, Loader2 } from 'lucide-react'
+import { Sparkles, Send, Loader2, Cpu } from 'lucide-react'
 import {
     Dialog,
     DialogContent,
@@ -12,6 +12,7 @@ import {
 } from '../ui/Dialog'
 import { Button } from '../ui/Button'
 import { cn } from '@/lib/utils'
+import { CredentialSelector } from '@/components/credentials/CredentialSelector'
 
 import { useAIDialog } from '@/hooks/use-ai-dialog'
 
@@ -20,11 +21,19 @@ interface AICreateDialogProps {
     title?: string
     description?: string
     placeholder?: string
-    onSubmit?: (prompt: string) => void | Promise<void>
+    onSubmit?: (prompt: string, model?: string, credentialId?: string) => void | Promise<void>
     className?: string
     open?: boolean
     onOpenChange?: (open: boolean) => void
 }
+
+const AI_MODELS = [
+    { id: 'openai/gpt-4o-mini', label: 'GPT-4o Mini' },
+    { id: 'openai/gpt-4o', label: 'GPT-4o' },
+    { id: 'anthropic/claude-3-5-sonnet', label: 'Claude 3.5 Sonnet' },
+    { id: 'google/gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+    { id: 'deepseek/deepseek-r1', label: 'DeepSeek R1' },
+]
 
 export function AICreateDialog({
     trigger,
@@ -41,6 +50,10 @@ export function AICreateDialog({
         setOpen,
         prompt,
         setPrompt,
+        model,
+        setModel,
+        credentialId,
+        setCredentialId,
         isLoading,
         handleSubmit,
         handleKeyDown,
@@ -90,6 +103,36 @@ export function AICreateDialog({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+                    {/* Model & Credential Selection */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
+                                <Cpu className="h-3 w-3" /> Model
+                            </label>
+                            <select
+                                value={model}
+                                onChange={(e) => setModel(e.target.value)}
+                                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+                                disabled={isLoading}
+                            >
+                                {AI_MODELS.map(m => (
+                                    <option key={m.id} value={m.id}>{m.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                AI Credential
+                            </label>
+                            <CredentialSelector
+                                value={credentialId}
+                                onChange={setCredentialId}
+                                filterType="ai_provider"
+                                placeholder="System Default"
+                            />
+                        </div>
+                    </div>
+
                     {/* Prompt Input */}
                     <div className="space-y-2">
                         <label htmlFor="ai-prompt" className="text-sm font-medium">

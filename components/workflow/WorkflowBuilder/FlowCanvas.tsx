@@ -107,27 +107,33 @@ export const FlowCanvas = memo(({
                 >
                     <Background
                         variant={BackgroundVariant.Dots}
-                        gap={16}
-                        size={1.5}
-                        color="#d1d5db"
-                        className="dark:opacity-30"
+                        gap={20}
+                        size={1}
+                        color="#374151"
+                        className="opacity-50"
                     />
 
-                    {/* Mode Toggle & Zoom Controls */}
-                    <Panel position="bottom-left" className="ml-4 mb-4">
-                        <div className="flex flex-col items-center gap-2">
+                    {/* Mode Toggle & Zoom Controls - Bottom Left */}
+                    <Panel position="bottom-left" className="ml-3 mb-3">
+                        <div className="flex flex-col gap-1.5">
                             {/* Mode Toggle */}
-                            <div className="flex flex-col items-center gap-1 p-1 bg-card/90 backdrop-blur-xl border border-border rounded-lg shadow-lg">
+                            <div className="flex flex-col p-1 bg-card border border-border rounded-lg">
                                 <button
                                     onClick={() => setCanvasMode('select')}
-                                    className={`p-1.5 rounded-md transition-all active:scale-95 ${canvasMode === 'select' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+                                    className={`p-1.5 rounded transition-colors ${canvasMode === 'select'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                                        }`}
                                     title="Select Mode (V)"
                                 >
                                     <MousePointer2 className="h-3.5 w-3.5" />
                                 </button>
                                 <button
                                     onClick={() => setCanvasMode('pan')}
-                                    className={`p-1.5 rounded-md transition-all active:scale-95 ${canvasMode === 'pan' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+                                    className={`p-1.5 rounded transition-colors ${canvasMode === 'pan'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                                        }`}
                                     title="Pan Mode (H)"
                                 >
                                     <Hand className="h-3.5 w-3.5" />
@@ -135,24 +141,24 @@ export const FlowCanvas = memo(({
                             </div>
 
                             {/* Zoom Controls */}
-                            <div className="flex flex-col items-center gap-1 p-1 bg-card/90 backdrop-blur-xl border border-border rounded-lg shadow-lg">
+                            <div className="flex flex-col p-1 bg-card border border-border rounded-lg">
                                 <button
                                     onClick={zoomIn}
-                                    className="p-1 hover:bg-accent rounded-md text-muted-foreground hover:text-foreground transition-all active:scale-95"
+                                    className="p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors"
                                     title="Zoom In"
                                 >
                                     <ZoomIn className="h-3.5 w-3.5" />
                                 </button>
                                 <button
                                     onClick={fitView}
-                                    className="p-1 hover:bg-accent rounded-md text-muted-foreground hover:text-foreground transition-all active:scale-95"
+                                    className="p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors"
                                     title="Fit View"
                                 >
                                     <Maximize className="h-3.5 w-3.5" />
                                 </button>
                                 <button
                                     onClick={zoomOut}
-                                    className="p-1 hover:bg-accent rounded-md text-muted-foreground hover:text-foreground transition-all active:scale-95"
+                                    className="p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors"
                                     title="Zoom Out"
                                 >
                                     <ZoomOut className="h-3.5 w-3.5" />
@@ -161,60 +167,54 @@ export const FlowCanvas = memo(({
                         </div>
                     </Panel>
 
-                    {/* Add Node Button on Top Right */}
-                    <Panel position="top-right" className="mr-4 mt-4">
+                    {/* Add Node Button - Top Right */}
+                    <Panel position="top-right" className="mr-3 mt-3">
                         <Button
                             onClick={() => setShowNodePanel(true)}
-                            className="p-0 h-10 w-10 rounded-xl shadow-xl hover:scale-105 transition-transform"
+                            size="sm"
+                            className="h-8 w-8 p-0 rounded-lg"
                         >
-                            <Plus className="h-5 w-5" />
+                            <Plus className="h-4 w-4" />
                         </Button>
                     </Panel>
 
-                    {/* Execute Button on Bottom Center */}
-                    <Panel position="bottom-center" className="mb-6">
-                        <motion.div
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
+                    {/* Execute Button - Bottom Center */}
+                    <Panel position="bottom-center" className="mb-4">
+                        <Button
+                            onClick={onExecute}
+                            disabled={isExecuting}
+                            className="h-9 px-4 rounded-lg text-sm font-medium"
                         >
-                            <Button
-                                onClick={onExecute}
-                                disabled={isExecuting}
-                                className="rounded-xl px-6 py-2.5 bg-primary hover:bg-primary/90 border-b-2 border-primary-dark shadow-xl hover:shadow-primary/20 h-auto font-semibold text-sm flex items-center gap-2.5 transition-all duration-150 active:border-b-0 active:translate-y-[1px]"
-                            >
-                                {isExecuting ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Play className="h-3.5 w-3.5 fill-current" />
-                                )}
-                                {isExecuting ? 'Running...' : 'Execute Workflow'}
-                            </Button>
-                        </motion.div>
+                            {isExecuting ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Play className="h-3.5 w-3.5 mr-2 fill-current" />
+                            )}
+                            {isExecuting ? 'Running...' : 'Execute Workflow'}
+                        </Button>
                     </Panel>
 
                     {/* Empty State - Add First Step */}
                     {nodes.length === 0 && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="flex flex-col items-center gap-3 pointer-events-auto">
+                            <div className="flex flex-col items-center gap-3 pointer-events-auto">
                                 <button
                                     onClick={() => setShowNodePanel(true)}
-                                    className="group flex flex-col items-center gap-2 p-8 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all"
+                                    className="group flex flex-col items-center justify-center gap-4 w-48 h-48 rounded-2xl border-2 border-dashed border-border/60 hover:border-primary hover:bg-muted/30 transition-all duration-300"
                                 >
-                                    <div className="p-4 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
-                                        <Plus className="h-8 w-8 text-muted-foreground group-hover:text-primary" />
+                                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 shadow-sm">
+                                        <Plus className="h-6 w-6" />
                                     </div>
-                                    <span className="text-sm font-medium">Add first step...</span>
+                                    <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                                        Add first step...
+                                    </span>
                                 </button>
-                                <a
-                                    href="/workflows"
-                                    className="text-xs text-primary hover:underline"
+                                <button
+                                    className="text-xs text-muted-foreground hover:text-primary transition-colors underline decoration-dotted underline-offset-4"
                                 >
                                     or start from a template
-                                </a>
-                            </motion.div>
+                                </button>
+                            </div>
                         </div>
                     )}
                 </ReactFlow>

@@ -17,7 +17,7 @@ export { WhatsAppTriggerNode, EmailTriggerNode, GenericTriggerNode } from './tri
 export { GenericActionNode, BaseActionNode, GoogleSheetsNode, EmailActionNode, PythonCodeNode } from './action'
 
 // Custom AI Nodes
-// (Add exports as custom AI nodes are created)
+export { AIAgentNode, LLMNode } from './ai'
 
 // Custom Logic Nodes
 export { GenericLogicNode, BaseLogicNode } from './logic'

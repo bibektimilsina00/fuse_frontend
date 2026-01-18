@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { UserPlus, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react'
+import Image from 'next/image'
+import { AlertCircle, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useRegister, useLogin } from '@/services/queries/auth'
@@ -36,94 +36,83 @@ export default function RegisterPage() {
     }
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-md"
-        >
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 border border-slate-200 dark:border-slate-700">
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full mb-4">
-                        <UserPlus className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                        Create Account
-                    </h1>
-                    <p className="text-slate-600 dark:text-slate-400">
-                        Get started with your automation journey
-                    </p>
+        <div className="w-full max-w-sm">
+            {/* Logo and Brand */}
+            <div className="text-center mb-8">
+                <div className="flex items-center justify-center mb-6">
+                    <Image
+                        src="/logo.png"
+                        alt="Fuse"
+                        width={72}
+                        height={72}
+                        className="object-contain"
+                    />
                 </div>
+                <h1 className="text-xl font-semibold text-foreground">
+                    Create your account
+                </h1>
+            </div>
 
+            {/* Register Form */}
+            <div className="bg-card border border-border rounded-lg p-6">
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {registerMutation.isError && (
-                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-start gap-2">
-                            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                            <p className="text-sm text-red-600 dark:text-red-400">
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-red-500">
                                 {registerMutation.error?.message || 'Registration failed. Please try again.'}
                             </p>
                         </div>
                     )}
 
                     {registerMutation.isSuccess && (
-                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 flex items-start gap-2">
-                            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                            <p className="text-sm text-green-600 dark:text-green-400">
-                                Account created successfully! Redirecting...
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 flex items-start gap-2">
+                            <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-emerald-500">
+                                Account created! Signing you in...
                             </p>
                         </div>
                     )}
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Full Name
+                        <label className="block text-sm text-muted-foreground mb-1.5">
+                            Name
                         </label>
-                        <div className="relative">
-                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                            <Input
-                                type="text"
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
-                                placeholder="John Doe"
-                                className="pl-10"
-                            />
-                        </div>
+                        <Input
+                            type="text"
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            placeholder="Your name"
+                        />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        <label className="block text-sm text-muted-foreground mb-1.5">
                             Email
                         </label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                            <Input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="you@example.com"
-                                className="pl-10"
-                                required
-                            />
-                        </div>
+                        <Input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="name@example.com"
+                            required
+                        />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        <label className="block text-sm text-muted-foreground mb-1.5">
                             Password
                         </label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                            <Input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                className="pl-10"
-                                required
-                                minLength={8}
-                            />
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            Must be at least 8 characters
+                        <Input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                            required
+                            minLength={8}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                            At least 8 characters
                         </p>
                     </div>
 
@@ -134,27 +123,26 @@ export default function RegisterPage() {
                     >
                         {registerMutation.isPending || loginMutation.isPending ? (
                             <div className="flex items-center justify-center gap-2">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                                 Creating account...
                             </div>
                         ) : (
-                            'Create Account'
+                            'Create account'
                         )}
                     </Button>
                 </form>
-
-                <div className="mt-6 text-center">
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Already have an account?{' '}
-                        <Link
-                            href="/auth/login"
-                            className="text-purple-600 dark:text-purple-400 hover:underline font-medium"
-                        >
-                            Sign in
-                        </Link>
-                    </p>
-                </div>
             </div>
-        </motion.div>
+
+            {/* Sign in link */}
+            <p className="text-center text-sm text-muted-foreground mt-6">
+                Already have an account?{' '}
+                <Link
+                    href="/auth/login"
+                    className="text-primary hover:underline"
+                >
+                    Sign in
+                </Link>
+            </p>
+        </div>
     )
 }

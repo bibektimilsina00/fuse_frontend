@@ -96,6 +96,8 @@ export interface AIWorkflowRequest {
     prompt: string
     current_nodes?: WorkflowNodeV2[]
     current_edges?: WorkflowEdgeV2[]
+    model?: string
+    credentialId?: string
 }
 
 export interface AIWorkflowResponse {
@@ -206,3 +208,6 @@ export const workflowApi = {
         return apiClient.get<unknown>(`/workflows/debug/workflows/${filename}`)
     },
 }
+
+// Alias for backwards compatibility
+export const workflowsApi = workflowApi

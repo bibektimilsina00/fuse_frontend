@@ -256,6 +256,7 @@ export interface NodeTypeDefinition {
     inputs: NodeTypeInput[]
     outputs: NodeTypeOutput[]
     credential_type?: string
+    trigger_group?: string
 }
 
 // =============================================================================

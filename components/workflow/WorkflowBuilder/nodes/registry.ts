@@ -7,7 +7,8 @@ import {
     EmailActionNode,
     PythonCodeNode,
     GenericLogicNode,
-    BaseNode
+    BaseNode,
+    AIAgentNode
 } from './index'
 
 // Node types must match the backend Python node definitions exactly
@@ -36,7 +37,7 @@ export const NODE_TYPES_MAP = {
     'data.transform': GenericActionNode,
 
     // === AI ===
-    'ai.agent': GenericActionNode,
+    'ai.agent': AIAgentNode,
     'ai.llm': GenericActionNode,
 
     // === LOGIC ===

@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { logger } from '@/lib/logger'
 
 interface UseAIDialogProps {
-    onSubmit?: (prompt: string) => void | Promise<void>
+    onSubmit?: (prompt: string, model?: string, credentialId?: string) => void | Promise<void>
     onSuccess?: () => void
     defaultOpen?: boolean
     open?: boolean
@@ -18,6 +18,8 @@ export function useAIDialog({
 }: UseAIDialogProps = {}) {
     const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen)
     const [prompt, setPrompt] = useState('')
+    const [model, setModel] = useState('openai/gpt-4o-mini')
+    const [credentialId, setCredentialId] = useState('')
     const [isLoading, setIsLoading] = useState(false)
 
     const isControlled = controlledOpen !== undefined
@@ -36,7 +38,7 @@ export function useAIDialog({
 
         setIsLoading(true)
         try {
-            await onSubmit?.(prompt.trim())
+            await onSubmit?.(prompt.trim(), model, credentialId || undefined)
             setPrompt('')
             setOpen(false)
             onSuccess?.()
@@ -45,7 +47,7 @@ export function useAIDialog({
         } finally {
             setIsLoading(false)
         }
-    }, [prompt, isLoading, onSubmit, onSuccess, setOpen])
+    }, [prompt, model, credentialId, isLoading, onSubmit, onSuccess, setOpen])
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -62,6 +64,10 @@ export function useAIDialog({
         setOpen,
         prompt,
         setPrompt,
+        model,
+        setModel,
+        credentialId,
+        setCredentialId,
         isLoading,
         handleSubmit,
         handleKeyDown,
