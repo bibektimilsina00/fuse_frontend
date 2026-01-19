@@ -166,7 +166,7 @@ export const workflowApi = {
     },
 
     async generateWithAI(data: AIWorkflowRequest): Promise<AIWorkflowResponse> {
-        return apiClient.post<AIWorkflowResponse>('/workflows/ai/generate', data)
+        return apiClient.post<AIWorkflowResponse>('/ai/generate', data)
     },
 
     async executeNode(workflowId: string, nodeId: string, inputData: Record<string, unknown> = {}): Promise<ExecuteNodeResponse> {
