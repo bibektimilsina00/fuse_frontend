@@ -43,7 +43,7 @@ export function CredentialSelector({ value, onChange, filterType, placeholder = 
     })
 
     const filteredCredentials = credentials.filter((cred: Credential) => {
-        const matchesType = !filterType || cred.type === filterType
+        const matchesType = !filterType || filterType.split(',').includes(cred.type)
         const matchesSearch = cred.name.toLowerCase().includes(searchQuery.toLowerCase())
         return matchesType && matchesSearch
     })
@@ -245,7 +245,7 @@ export function CredentialSelector({ value, onChange, filterType, placeholder = 
                 isOpen={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
                 onSuccess={handleCreateSuccess}
-                defaultType={filterType || 'api_key'}
+                defaultType={filterType ? filterType.split(',')[0] : 'api_key'}
             />
         </>
     )

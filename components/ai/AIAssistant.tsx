@@ -31,6 +31,7 @@ import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import { CredentialSelector } from '@/components/credentials/CredentialSelector'
+import { useCredential } from '@/services/queries/credentials'
 
 type AssistantMode = 'help' | 'create'
 
@@ -95,6 +96,57 @@ const AI_MODELS = [
     },
 ]
 
+const COPILOT_MODELS = [
+    {
+        id: 'gpt-4o',
+        label: 'GPT-4o',
+        provider: 'copilot',
+        description: 'GitHub Copilot',
+        speed: 'Fast',
+        quality: 'Excellent',
+        cost: 'Included'
+    },
+    {
+        id: 'claude-3.5-sonnet',
+        label: 'Claude 3.5 Sonnet',
+        provider: 'copilot',
+        description: 'GitHub Copilot',
+        speed: 'Medium',
+        quality: 'Excellent',
+        cost: 'Included'
+    },
+    {
+        id: 'o1-preview',
+        label: 'o1 Preview',
+        provider: 'copilot',
+        description: 'Reasoning',
+        speed: 'Slow',
+        quality: 'Best',
+        cost: 'Included'
+    }
+]
+
+const GOOGLE_MODELS = [
+    {
+        id: 'gemini-2.0-flash-exp',
+        label: 'Gemini 2.0 Flash',
+        provider: 'google',
+        description: 'Experimental',
+        speed: 'Very Fast',
+        quality: 'Good',
+        cost: 'Free'
+    },
+    {
+        id: 'gemini-1.5-pro-latest',
+        label: 'Gemini 1.5 Pro',
+        provider: 'google',
+        description: 'Production',
+        speed: 'Fast',
+        quality: 'Great',
+        cost: 'Free'
+    }
+]
+
 const HELP_SUGGESTIONS = [
     { icon: Code, text: 'How do I use variables in workflows?', category: 'Basics' },
     { icon: Zap, text: 'What triggers are available?', category: 'Triggers' },
@@ -121,6 +173,7 @@ const PROVIDER_ICONS: Record<string, string> = {
     google: '✨',
     deepseek: '🌊',
     openrouter: '🌐',
+    copilot: '🐱',
     default: '⚙️'
 }
 
@@ -128,21 +181,22 @@ interface ModelSelectorProps {
     value: string
     onChange: (id: string) => void
     className?: string
+    models: typeof AI_MODELS
 }
 
-function ModelSelector({ value, onChange, className }: ModelSelectorProps) {
+function ModelSelector({ value, onChange, className, models }: ModelSelectorProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
     const triggerRef = useRef<HTMLButtonElement>(null)
     const dropdownRef = useRef<HTMLDivElement>(null)
 
-    const filteredModels = AI_MODELS.filter(m =>
+    const filteredModels = models.filter(m =>
         m.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
         m.provider.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    const selectedModel = AI_MODELS.find(m => m.id === value) || AI_MODELS[0]
+    const selectedModel = models.find(m => m.id === value) || models[0]
 
     useEffect(() => {
         if (isOpen && triggerRef.current) {
@@ -294,6 +348,29 @@ export function AIAssistant({
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
     const [isMinimized, setIsMinimized] = useState(false)
 
+    // Fetch details of selected credential to determine available models
+    const { data: credential } = useCredential(selectedCredentialId)
+
+    const availableModels = React.useMemo(() => {
+        if (!credential) return AI_MODELS
+
+        if (credential.type === 'github_copilot') {
+            return COPILOT_MODELS
+        }
+        if (credential.type === 'google_ai') {
+            return GOOGLE_MODELS
+        }
+        return AI_MODELS
+    }, [credential])
+
+    // Reset model if it's not in the available list (when credential changes)
+    useEffect(() => {
+        const currentModelExists = availableModels.find(m => m.id === selectedModel)
+        if (!currentModelExists && availableModels.length > 0) {
+            setSelectedModel(availableModels[0].id)
+        }
+    }, [availableModels, selectedModel])
+
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -443,7 +520,7 @@ Try asking something like "How do I connect to Slack?" or "What's the best way t
         }
     }
 
-    const selectedModelInfo = AI_MODELS.find(m => m.id === selectedModel)
+    const selectedModelInfo = availableModels.find(m => m.id === selectedModel)
 
     if (!isOpen) return null
 
@@ -562,18 +639,7 @@ Try asking something like "How do I connect to Slack?" or "What's the best way t
                         {showSettings ? (
                             /* Settings View - Full Dialog */
                             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                                {/* Model Selection */}
-                                <div className="space-y-3">
-                                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
-                                        <Cpu className="h-4 w-4" /> AI Model
-                                    </label>
-                                    <ModelSelector
-                                        value={selectedModel}
-                                        onChange={setSelectedModel}
-                                    />
-                                </div>
-
-                                {/* Credential Selection */}
+                                {/* Credential Selection (First) */}
                                 <div className="space-y-3">
                                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                         AI Credential
@@ -581,12 +647,24 @@ Try asking something like "How do I connect to Slack?" or "What's the best way t
                                     <CredentialSelector
                                         value={selectedCredentialId}
                                         onChange={setSelectedCredentialId}
-                                        filterType="ai_provider"
+                                        filterType="ai_provider,google_ai,github_copilot"
                                         placeholder="System Default"
                                     />
                                     <p className="text-xs text-muted-foreground leading-relaxed">
-                                        💡 Use your own API key for unlimited access and advanced models.
+                                        💡 Connect your own accounts for access to specialized models like Gemini 2.0 or GitHub Copilot.
                                     </p>
+                                </div>
+
+                                {/* Model Selection (Second - Dynamic) */}
+                                <div className="space-y-3">
+                                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
+                                        <Cpu className="h-4 w-4" /> AI Model
+                                    </label>
+                                    <ModelSelector
+                                        value={selectedModel}
+                                        onChange={setSelectedModel}
+                                        models={availableModels}
+                                    />
                                 </div>
                             </div>
                         ) : (
