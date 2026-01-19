@@ -31,7 +31,8 @@ import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import { CredentialSelector } from '@/components/credentials/CredentialSelector'
-import { useCredential } from '@/services/queries/credentials'
+import { aiApi } from '@/services/api/ai'
+import { useQuery, useMutation } from '@tanstack/react-query'
 
 type AssistantMode = 'help' | 'create'
 
@@ -348,20 +349,12 @@ export function AIAssistant({
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
     const [isMinimized, setIsMinimized] = useState(false)
 
-    // Fetch details of selected credential to determine available models
-    const { data: credential } = useCredential(selectedCredentialId)
-
-    const availableModels = React.useMemo(() => {
-        if (!credential) return AI_MODELS
-
-        if (credential.type === 'github_copilot') {
-            return COPILOT_MODELS
-        }
-        if (credential.type === 'google_ai') {
-            return GOOGLE_MODELS
-        }
-        return AI_MODELS
-    }, [credential])
+    // Fetch available models from backend
+    const { data: availableModels = AI_MODELS } = useQuery({
+        queryKey: ['aiModels', selectedCredentialId],
+        queryFn: () => aiApi.getModels(selectedCredentialId || undefined),
+        enabled: isOpen,
+    })
 
     // Reset model if it's not in the available list (when credential changes)
     useEffect(() => {
@@ -370,6 +363,28 @@ export function AIAssistant({
             setSelectedModel(availableModels[0].id)
         }
     }, [availableModels, selectedModel])
+
+    const chatMutation = useMutation({
+        mutationFn: aiApi.chat,
+        onSuccess: (data) => {
+            const assistantMessage: ChatMessage = {
+                role: 'assistant',
+                content: data.response,
+                timestamp: new Date()
+            }
+            setMessages(prev => [...prev, assistantMessage])
+            setIsLoading(false)
+        },
+        onError: () => {
+            const errorMessage: ChatMessage = {
+                role: 'assistant',
+                content: '❌ Sorry, something went wrong. Please try again or check your settings.',
+                timestamp: new Date()
+            }
+            setMessages(prev => [...prev, errorMessage])
+            setIsLoading(false)
+        }
+    })
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -409,8 +424,8 @@ export function AIAssistant({
         setInput('')
         setIsLoading(true)
 
-        try {
-            if (mode === 'create' && onCreateWorkflow) {
+        if (mode === 'create' && onCreateWorkflow) {
+            try {
                 await onCreateWorkflow(input.trim(), selectedModel, selectedCredentialId || undefined)
                 const successMessage: ChatMessage = {
                     role: 'assistant',
@@ -418,85 +433,30 @@ export function AIAssistant({
                     timestamp: new Date()
                 }
                 setMessages(prev => [...prev, successMessage])
-            } else {
-                await new Promise(resolve => setTimeout(resolve, 1000))
-                const helpMessage: ChatMessage = {
+            } catch (error) {
+                const errorMessage: ChatMessage = {
                     role: 'assistant',
-                    content: generateHelpResponse(input.trim()),
+                    content: '❌ Sorry, failed to create workflow. Please try again.',
                     timestamp: new Date()
                 }
-                setMessages(prev => [...prev, helpMessage])
+                setMessages(prev => [...prev, errorMessage])
+            } finally {
+                setIsLoading(false)
             }
-        } catch (error) {
-            const errorMessage: ChatMessage = {
-                role: 'assistant',
-                content: '❌ Sorry, something went wrong. Please try again or check your settings.',
-                timestamp: new Date()
-            }
-            setMessages(prev => [...prev, errorMessage])
-        } finally {
-            setIsLoading(false)
+        } else {
+            // Chat Mode
+            chatMutation.mutate({
+                message: input.trim(),
+                model: selectedModel,
+                credential_id: selectedCredentialId || undefined,
+                history: messages.map(m => ({
+                    role: m.role === 'user' ? 'user' : 'assistant', // Map to API types
+                    content: m.content
+                }))
+            })
         }
     }
 
-    const generateHelpResponse = (question: string): string => {
-        const q = question.toLowerCase()
-        if (q.includes('variable') || q.includes('expression')) {
-            return `📝 **Using Variables in Workflows**
-
-Variables allow you to store and reuse data across nodes. Here's how:
-
-1. **Reference previous node outputs**: Use \`{{node_id.outputs.field_name}}\`
-2. **Built-in variables**: \`{{$now}}\`, \`{{$user.email}}\`, \`{{$workflow.id}}\`
-3. **Create custom variables**: Go to Dashboard > Variables
-
-Example: \`{{trigger.outputs.email}}\` gets the email from your trigger node.`
-        }
-        if (q.includes('trigger')) {
-            return `⚡ **Available Triggers**
-
-We support multiple trigger types:
-
-• **Schedule**: Run workflows on a cron schedule
-• **Webhook**: Trigger via HTTP requests
-• **Email**: Trigger when emails arrive
-• **Form Submit**: React to form submissions
-• **Manual**: Run workflows manually
-
-Each trigger outputs data that you can use in subsequent nodes!`
-        }
-        if (q.includes('google sheets') || q.includes('sheets')) {
-            return `📊 **Connecting to Google Sheets**
-
-1. Go to **Credentials** page
-2. Click **Add Credential**
-3. Select **Google Sheets** as type
-4. Complete OAuth authentication
-5. Use the credential in your Google Sheets nodes
-
-The credential is encrypted and stored securely!`
-        }
-        if (q.includes('error') || q.includes('handling')) {
-            return `🛡️ **Error Handling Best Practices**
-
-1. **Use Try-Catch logic nodes** to handle failures gracefully
-2. **Set retry policies** in node settings (up to 3 retries)
-3. **Add conditional branches** for error scenarios
-4. **Enable logging** in workflow settings for debugging
-5. **Use notification nodes** to alert on critical failures
-
-Pro tip: Test your workflows with the Execute button before activating!`
-        }
-        return `I'm here to help with your automation questions! I can assist with:
-
-• Workflow creation and design
-• Node configuration
-• Integration setup
-• Troubleshooting
-• Best practices
-
-Try asking something like "How do I connect to Slack?" or "What's the best way to handle errors?"`
-    }
 
     const handleSuggestionClick = (suggestion: string) => {
         setInput(suggestion)
