@@ -34,7 +34,8 @@ export function useCredentialsByType(type: string) {
         queryKey: credentialKeys.byType(type),
         queryFn: async () => {
             const credentials = await credentialsApi.getCredentials()
-            return credentials.filter(c => c.type === type)
+            const allowedTypes = type.split(',')
+            return credentials.filter(c => allowedTypes.includes(c.type))
         },
         enabled: !!type,
     })
