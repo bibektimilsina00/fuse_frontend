@@ -143,20 +143,38 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
     useEffect(() => {
         if (step !== 'device-flow' || !deviceCodeData) return;
 
-        const intervalId = setInterval(async () => {
+        let timeoutId: NodeJS.Timeout;
+        let isCancelled = false;
+
+        const poll = async () => {
+            if (isCancelled) return;
+
             try {
                 const res = await credentialsApi.pollGitHubCopilot(deviceCodeData.device_code)
+
                 if (res.status === 'success' && res.credential) {
                     queryClient.invalidateQueries({ queryKey: ['credentials'] })
                     if (onSuccess && res.credential) onSuccess(res.credential.id)
                     handleClose()
+                    return
                 }
-            } catch (e) {
-                // Ignore pending/slow_down errors
-            }
-        }, (deviceCodeData.interval || 5) * 1000);
 
-        return () => clearInterval(intervalId);
+                // Continue polling with dynamic interval (add 2s buffer for safety)
+                const nextInterval = ((res.interval || deviceCodeData.interval || 5) + 2) * 1000;
+                timeoutId = setTimeout(poll, nextInterval)
+            } catch (e) {
+                // On error, wait 10s and retry
+                if (!isCancelled) timeoutId = setTimeout(poll, 10000)
+            }
+        }
+
+        // Start polling loop
+        timeoutId = setTimeout(poll, (deviceCodeData.interval || 5) * 1000)
+
+        return () => {
+            isCancelled = true;
+            clearTimeout(timeoutId);
+        }
     }, [step, deviceCodeData, queryClient, onSuccess])
 
     const handleClose = () => {
