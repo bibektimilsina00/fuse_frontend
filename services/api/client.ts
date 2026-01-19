@@ -145,7 +145,7 @@ export class ApiClient {
 
             if (!response.ok) {
                 // Handle 401 Unauthorized with Refresh Token
-                const isAuthEndpoint = endpoint.includes('/users/me') || endpoint.includes('/login')
+                const isAuthEndpoint = endpoint.includes('/login')
                 if (response.status === 401 && !isAuthEndpoint && this.refreshToken) {
                     try {
                         const newData = await this.performTokenRefresh()
