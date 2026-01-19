@@ -20,10 +20,10 @@ export interface AIModel {
     id: string
     label: string
     provider: string
-    description?: string
-    speed?: string
-    quality?: string
-    cost?: string
+    description: string
+    speed: string
+    quality: string
+    cost: string
 }
 
 export const aiApi = {
