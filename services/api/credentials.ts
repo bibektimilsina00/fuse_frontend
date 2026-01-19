@@ -50,7 +50,7 @@ export const credentialsApi = {
 
     // OAuth callback handling
     async getOAuthUrl(credentialType: string): Promise<{ url: string }> {
-        return apiClient.get<{ url: string }>(`/credentials/oauth/${credentialType}/url`)
+        return apiClient.get<{ url: string }>(`/credentials/oauth/${credentialType}/authorize`)
     },
 
     // GitHub Copilot Device Flow

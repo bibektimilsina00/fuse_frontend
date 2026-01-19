@@ -108,6 +108,7 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
     const [selectedApp, setSelectedApp] = useState<typeof CREDENTIAL_APPS[0] | null>(null)
     const [deviceCodeData, setDeviceCodeData] = useState<{ user_code: string; verification_uri: string; device_code: string; interval: number } | null>(null)
     const [copied, setCopied] = useState(false)
+    const [isConnecting, setIsConnecting] = useState(false)
 
     // Form fields
     const [name, setName] = useState('')
@@ -205,7 +206,7 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
         }
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!selectedApp) return
 
@@ -215,11 +216,20 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
         }
 
         if (selectedApp.isOAuth) {
-            // Redirect to Backend OAuth
-            const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5678'
-            // Construct API V1 URL if not included
-            const baseUrl = API_BASE.endsWith('/api/v1') ? API_BASE : `${API_BASE}/api/v1`
-            window.location.href = `${baseUrl}/credentials/oauth/${selectedApp.id}/authorize`
+            try {
+                setIsConnecting(true)
+                const res = await credentialsApi.getOAuthUrl(selectedApp.id)
+                if (res.url) {
+                    window.location.href = res.url
+                } else {
+                    console.error("No URL returned for OAuth")
+                    setIsConnecting(false)
+                }
+            } catch (err) {
+                console.error("Failed to initiate OAuth:", err)
+                setIsConnecting(false)
+                alert("Failed to connect: " + (err instanceof Error ? err.message : String(err)))
+            }
             return
         }
 
@@ -481,9 +491,9 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={(!selectedApp?.isOAuth && !name) || (!selectedApp?.isOAuth && !apiKey) || createMutation.isPending || startDeviceFlowMutation.isPending}
+                                    disabled={(!selectedApp?.isOAuth && !name) || (!selectedApp?.isOAuth && !apiKey) || createMutation.isPending || startDeviceFlowMutation.isPending || isConnecting}
                                 >
-                                    {createMutation.isPending || startDeviceFlowMutation.isPending ? (
+                                    {createMutation.isPending || startDeviceFlowMutation.isPending || isConnecting ? (
                                         <>
                                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                             {selectedApp?.isOAuth ? 'Connecting...' : 'Creating...'}
