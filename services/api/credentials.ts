@@ -52,4 +52,13 @@ export const credentialsApi = {
     async getOAuthUrl(credentialType: string): Promise<{ url: string }> {
         return apiClient.get<{ url: string }>(`/credentials/oauth/${credentialType}/url`)
     },
+
+    // GitHub Copilot Device Flow
+    async initiateGitHubCopilotDeviceFlow(): Promise<{ device_code: string; user_code: string; verification_uri: string; interval: number }> {
+        return apiClient.post('/credentials/oauth/github-copilot/device/code')
+    },
+
+    async pollGitHubCopilot(deviceCode: string): Promise<{ status: string; credential?: Credential; interval?: number }> {
+        return apiClient.post(`/credentials/oauth/github-copilot/device/poll?device_code=${deviceCode}`)
+    }
 }

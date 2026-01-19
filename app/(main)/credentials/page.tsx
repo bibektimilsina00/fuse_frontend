@@ -22,6 +22,8 @@ import { cn } from '@/lib/utils'
 // Credential type icons and colors
 const CREDENTIAL_TYPES: Record<string, { icon: string; color: string; label: string }> = {
     google_sheets: { icon: '📊', color: 'bg-green-500/20 text-green-400', label: 'Google Sheets' },
+    google_ai: { icon: '💎', color: 'bg-blue-500/20 text-blue-400', label: 'Google AI' },
+    github_copilot: { icon: '🤖', color: 'bg-indigo-500/20 text-indigo-100', label: 'GitHub Copilot' },
     slack: { icon: '💬', color: 'bg-purple-500/20 text-purple-400', label: 'Slack' },
     discord: { icon: '🎮', color: 'bg-indigo-500/20 text-indigo-400', label: 'Discord' },
     ai_provider: { icon: '🤖', color: 'bg-cyan-500/20 text-cyan-400', label: 'AI Provider' },

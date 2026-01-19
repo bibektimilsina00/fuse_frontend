@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Loader2, Search, ChevronRight } from 'lucide-react'
+import { X, Loader2, Search, ChevronRight, Copy, Check, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { credentialsApi } from '@/services/api/credentials'
 import { cn } from '@/lib/utils'
@@ -29,6 +29,22 @@ const CREDENTIAL_APPS = [
             { id: 'gemini', label: 'Google Gemini', icon: '💎', needsBaseUrl: false },
             { id: 'openrouter', label: 'OpenRouter', icon: '🚀', needsBaseUrl: true },
         ]
+    },
+    {
+        id: 'google_ai',
+        name: 'Google AI / Gemini',
+        icon: '💎',
+        description: 'Premium Antigravity Models (OAuth)',
+        category: 'AI & ML',
+        isOAuth: true
+    },
+    {
+        id: 'github_copilot',
+        name: 'GitHub Copilot',
+        icon: '🤖',
+        description: 'Login with GitHub Copilot',
+        category: 'AI & ML',
+        isOAuth: true
     },
     {
         id: 'google_sheets',
@@ -87,9 +103,11 @@ const CREDENTIAL_APPS = [
 
 export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType }: CreateCredentialModalProps) {
     const queryClient = useQueryClient()
-    const [step, setStep] = useState<'select-app' | 'configure'>('select-app')
+    const [step, setStep] = useState<'select-app' | 'configure' | 'device-flow'>('select-app')
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedApp, setSelectedApp] = useState<typeof CREDENTIAL_APPS[0] | null>(null)
+    const [deviceCodeData, setDeviceCodeData] = useState<{ user_code: string; verification_uri: string; device_code: string; interval: number } | null>(null)
+    const [copied, setCopied] = useState(false)
 
     // Form fields
     const [name, setName] = useState('')
@@ -109,10 +127,43 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
         }
     })
 
+    // Prepare Device Flow Logic
+    const startDeviceFlowMutation = useMutation({
+        mutationFn: () => credentialsApi.initiateGitHubCopilotDeviceFlow(),
+        onSuccess: (data) => {
+            setDeviceCodeData(data)
+            setStep('device-flow')
+        },
+        onError: (err) => {
+            alert("Failed to start device flow: " + err)
+        }
+    })
+
+    // Polling Effect
+    useEffect(() => {
+        if (step !== 'device-flow' || !deviceCodeData) return;
+
+        const intervalId = setInterval(async () => {
+            try {
+                const res = await credentialsApi.pollGitHubCopilot(deviceCodeData.device_code)
+                if (res.status === 'success' && res.credential) {
+                    queryClient.invalidateQueries({ queryKey: ['credentials'] })
+                    if (onSuccess && res.credential) onSuccess(res.credential.id)
+                    handleClose()
+                }
+            } catch (e) {
+                // Ignore pending/slow_down errors
+            }
+        }, (deviceCodeData.interval || 5) * 1000);
+
+        return () => clearInterval(intervalId);
+    }, [step, deviceCodeData, queryClient, onSuccess])
+
     const handleClose = () => {
         setStep('select-app')
         setSearchQuery('')
         setSelectedApp(null)
+        setDeviceCodeData(null)
         setName('')
         setApiKey('')
         setBaseUrl('')
@@ -128,9 +179,31 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
         setStep('configure')
     }
 
+    const copyCode = () => {
+        if (deviceCodeData?.user_code) {
+            navigator.clipboard.writeText(deviceCodeData.user_code)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+        }
+    }
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         if (!selectedApp) return
+
+        if (selectedApp.id === 'github_copilot') {
+            startDeviceFlowMutation.mutate()
+            return
+        }
+
+        if (selectedApp.isOAuth) {
+            // Redirect to Backend OAuth
+            const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5678'
+            // Construct API V1 URL if not included
+            const baseUrl = API_BASE.endsWith('/api/v1') ? API_BASE : `${API_BASE}/api/v1`
+            window.location.href = `${baseUrl}/credentials/oauth/${selectedApp.id}/authorize`
+            return
+        }
 
         createMutation.mutate({
             name,
@@ -166,12 +239,15 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                 <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
                     <div>
                         <h2 className="text-lg font-semibold">
-                            {step === 'select-app' ? 'Select App' : `Create ${selectedApp?.name} Credential`}
+                            {step === 'select-app' ? 'Select App' :
+                                step === 'device-flow' ? 'Connect GitHub Copilot' :
+                                    `Create ${selectedApp?.name} Credential`}
                         </h2>
                         <p className="text-sm text-muted-foreground mt-0.5">
                             {step === 'select-app'
                                 ? 'Choose the service you want to connect'
-                                : 'Enter your credentials to connect'}
+                                : step === 'device-flow' ? 'Authorize the application on GitHub'
+                                    : 'Enter your credentials to connect'}
                         </p>
                     </div>
                     <button
@@ -243,6 +319,45 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                                 </div>
                             )}
                         </div>
+                    ) : step === 'device-flow' && deviceCodeData ? (
+                        <div className="p-6 space-y-6 flex flex-col items-center text-center">
+                            <div className="bg-primary/5 p-6 rounded-xl border border-primary/20 w-full max-w-sm">
+                                <p className="text-sm text-muted-foreground mb-2">Device Code</p>
+                                <div className="flex items-center gap-2">
+                                    <code className="flex-1 text-2xl font-mono font-bold tracking-wider text-primary bg-background py-3 rounded-lg border border-border">
+                                        {deviceCodeData.user_code}
+                                    </code>
+                                    <Button size="icon" variant="outline" className="h-14 w-14" onClick={copyCode}>
+                                        {copied ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 max-w-sm">
+                                <p className="text-muted-foreground">
+                                    1. Copy the code above.<br />
+                                    2. Click the button below to open GitHub.<br />
+                                    3. Paste the code to authorize specific access.
+                                </p>
+
+                                <a
+                                    href={deviceCodeData.verification_uri}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-full"
+                                >
+                                    <Button className="w-full gap-2" size="lg">
+                                        Open GitHub Authorization
+                                        <ExternalLink className="h-4 w-4" />
+                                    </Button>
+                                </a>
+
+                                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground pt-4">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Waiting for authorization...
+                                </div>
+                            </div>
+                        </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             {/* Back button */}
@@ -256,19 +371,21 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                             </button>
 
                             {/* Credential Name */}
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground block mb-1.5">
-                                    Credential Name
-                                </label>
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                                    placeholder={`My ${selectedApp?.name} Account`}
-                                    required
-                                />
-                            </div>
+                            {!selectedApp?.isOAuth && (
+                                <div>
+                                    <label className="text-sm font-medium text-muted-foreground block mb-1.5">
+                                        Credential Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={name}
+                                        onChange={e => setName(e.target.value)}
+                                        className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                        placeholder={`My ${selectedApp?.name} Account`}
+                                        required
+                                    />
+                                </div>
+                            )}
 
                             {/* AI Provider Selection */}
                             {selectedApp?.id === 'ai_provider' && selectedApp.providers && (
@@ -301,7 +418,7 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                             {selectedApp?.isOAuth && (
                                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                                     <p className="text-sm text-foreground">
-                                        <strong>OAuth Connection:</strong> You'll be redirected to {selectedApp.name} to authorize access.
+                                        <strong>Connection Required:</strong> You will be redirected to {selectedApp.name} to authorize access.
                                     </p>
                                 </div>
                             )}
@@ -346,12 +463,12 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={!name || (!selectedApp?.isOAuth && !apiKey) || createMutation.isPending}
+                                    disabled={(!selectedApp?.isOAuth && !name) || (!selectedApp?.isOAuth && !apiKey) || createMutation.isPending || startDeviceFlowMutation.isPending}
                                 >
-                                    {createMutation.isPending ? (
+                                    {createMutation.isPending || startDeviceFlowMutation.isPending ? (
                                         <>
                                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Creating...
+                                            {selectedApp?.isOAuth ? 'Connecting...' : 'Creating...'}
                                         </>
                                     ) : (
                                         selectedApp?.isOAuth ? 'Connect' : 'Create'
