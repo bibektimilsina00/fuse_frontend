@@ -53,12 +53,14 @@ function isRetryableError(status: number, config: RetryConfig): boolean {
 export class ApiClient {
     private static instance: ApiClient
     private token: string | null = null
+    private refreshToken: string | null = null
     private retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG
 
     private constructor() {
         // Load token from localStorage if available
         if (typeof window !== 'undefined') {
             this.token = localStorage.getItem('auth_token')
+            this.refreshToken = localStorage.getItem('refresh_token')
         }
     }
 
@@ -69,13 +71,20 @@ export class ApiClient {
         return ApiClient.instance
     }
 
-    setToken(token: string | null) {
+    setToken(token: string | null, refreshToken?: string | null) {
         this.token = token
+        this.refreshToken = refreshToken || null
         if (typeof window !== 'undefined') {
             if (token) {
                 localStorage.setItem('auth_token', token)
             } else {
                 localStorage.removeItem('auth_token')
+            }
+
+            if (refreshToken) {
+                localStorage.setItem('refresh_token', refreshToken)
+            } else {
+                localStorage.removeItem('refresh_token')
             }
         }
     }
@@ -135,6 +144,31 @@ export class ApiClient {
             }
 
             if (!response.ok) {
+                // Handle 401 Unauthorized with Refresh Token
+                const isAuthEndpoint = endpoint.includes('/users/me') || endpoint.includes('/login')
+                if (response.status === 401 && !isAuthEndpoint && this.refreshToken) {
+                    try {
+                        const newData = await this.performTokenRefresh()
+                        this.setToken(newData.access_token, newData.refresh_token)
+
+                        // Update header and retry
+                        headers['Authorization'] = `Bearer ${newData.access_token}`
+                        const retryResponse = await fetch(`${API_V1}${endpoint}`, {
+                            ...options,
+                            headers,
+                        })
+                        if (retryResponse.ok) return retryResponse.json()
+                        // If still fails, fall through to error handling
+                    } catch (e) {
+                        logger.error('Token refresh failed', e)
+                        this.setToken(null, null)
+                        if (typeof window !== 'undefined') {
+                            window.location.href = '/auth/login'
+                        }
+                        throw e
+                    }
+                }
+
                 const error = await response.json().catch(() => ({ detail: 'An error occurred' }))
                 // Handle FastAPI validation errors (array of objects)
                 let errorMessage: string
@@ -165,6 +199,17 @@ export class ApiClient {
             }
             throw error
         }
+    }
+
+    private async performTokenRefresh(): Promise<{ access_token: string, refresh_token: string }> {
+        const response = await fetch(`${API_V1}/login/refresh-token`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.refreshToken}`,
+            }
+        })
+        if (!response.ok) throw new Error('Failed to refresh token')
+        return response.json()
     }
 
     async get<T>(endpoint: string): Promise<T> {

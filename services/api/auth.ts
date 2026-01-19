@@ -13,6 +13,7 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
     access_token: string
+    refresh_token: string
     token_type: string
 }
 
@@ -33,7 +34,7 @@ export const authApi = {
 
         // Use apiClient's postFormData method for form-urlencoded requests
         const data = await apiClient.postFormData<AuthResponse>('/login/access-token', formData)
-        apiClient.setToken(data.access_token)
+        apiClient.setToken(data.access_token, data.refresh_token)
         return data
     },
 
