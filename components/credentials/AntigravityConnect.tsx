@@ -110,7 +110,7 @@ export function AntigravityConnect() {
                                 variant="outline"
                                 className="w-full sm:w-auto border-primary/20 hover:bg-primary/5 gap-2"
                                 onClick={handleConnect}
-                                isLoading={isConnecting}
+                                loading={isConnecting}
                             >
                                 <RefreshCcw className="h-4 w-4" />
                                 Re-authenticate
@@ -119,7 +119,7 @@ export function AntigravityConnect() {
                             <Button
                                 className="w-full sm:w-auto gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
                                 onClick={handleConnect}
-                                isLoading={isConnecting}
+                                loading={isConnecting}
                             >
                                 Connect Now
                                 <ChevronRight className="h-4 w-4" />
