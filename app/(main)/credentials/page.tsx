@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { credentialsApi, Credential } from '@/services/api/credentials'
-import { CreateCredentialModal } from '@/components/credentials/CreateCredentialModal'
+import { CreateCredentialModal, AntigravityConnect } from '@/components/credentials'
 import { cn } from '@/lib/utils'
 
 // Credential type icons and colors
@@ -138,6 +138,9 @@ export default function CredentialsPage() {
                     Add Credential
                 </Button>
             </div>
+
+            {/* Platform Integrations */}
+            <AntigravityConnect />
 
             {/* Search & Filters */}
             <div className="flex items-center gap-3">
