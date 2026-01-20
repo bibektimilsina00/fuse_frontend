@@ -16,24 +16,24 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
-import { aiApi, AntigravityStatus } from '@/services/api/ai'
+import { pluginsApi, PluginStatus } from '@/services/api/plugins'
 import { cn } from '@/lib/utils'
 
 export function AntigravityConnect() {
     const [isConnecting, setIsConnecting] = useState(false)
     const queryClient = useQueryClient()
 
-    const { data: status, isLoading, isError } = useQuery({
-        queryKey: ['antigravity-status'],
-        queryFn: () => aiApi.getAntigravityStatus(),
+    const { data: plugin, isLoading, isError } = useQuery({
+        queryKey: ['plugin', 'google-ai-antigravity'],
+        queryFn: () => pluginsApi.getPlugin('google-ai-antigravity'),
         refetchInterval: 5000 // Poll every 5 seconds
     })
 
     const loginMutation = useMutation({
-        mutationFn: () => aiApi.startAntigravityLogin(),
+        mutationFn: () => pluginsApi.performAction('google-ai-antigravity', 'login'),
         onSuccess: (data) => {
             if (data.success) {
-                queryClient.invalidateQueries({ queryKey: ['antigravity-status'] })
+                queryClient.invalidateQueries({ queryKey: ['plugin', 'google-ai-antigravity'] })
             }
         },
         onSettled: () => {
@@ -50,7 +50,7 @@ export function AntigravityConnect() {
         <div className="h-32 bg-card/50 border border-border rounded-2xl animate-pulse" />
     )
 
-    const isConnected = status?.accounts && status.accounts.length > 0
+    const isConnected = plugin?.details?.accounts && plugin.details.accounts.length > 0
 
     return (
         <motion.div
@@ -91,14 +91,14 @@ export function AntigravityConnect() {
                             </p>
 
                             <AnimatePresence>
-                                {isConnected && status.accounts && (
+                                {isConnected && plugin?.details?.accounts && (
                                     <motion.div
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         className="flex items-center gap-2 mt-3"
                                     >
                                         <div className="text-[11px] text-muted-foreground font-mono bg-muted/50 px-2 py-1 rounded">
-                                            Active Account: {status.accounts[0]}
+                                            Active Account: {plugin.details.accounts[0]}
                                         </div>
                                     </motion.div>
                                 )}
@@ -137,10 +137,10 @@ export function AntigravityConnect() {
                 {/* Status Bar */}
                 <div className="mt-6 pt-4 border-t border-border/50 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px]">
                     <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <div className={cn("h-1.5 w-1.5 rounded-full shadow-[0_0_8px]", status?.installed ? "bg-green-500 shadow-green-500/50" : "bg-amber-500 shadow-amber-500/50")} />
+                        <div className={cn("h-1.5 w-1.5 rounded-full shadow-[0_0_8px]", plugin?.installed ? "bg-green-500 shadow-green-500/50" : "bg-amber-500 shadow-amber-500/50")} />
                         <span className="text-muted-foreground uppercase font-bold tracking-tighter opacity-70">Binary:</span>
-                        <span className="font-medium">{status?.installed ? 'Installed' : 'Needs Install'}</span>
-                        {!status?.installed && (
+                        <span className="font-medium">{plugin?.installed ? 'Installed' : 'Needs Install'}</span>
+                        {!plugin?.installed && (
                             <Link href="/plugins/google-ai-antigravity" className="ml-2 text-primary hover:underline flex items-center gap-1">
                                 <Download className="h-3 w-3" />
                                 Download Plugin
@@ -148,13 +148,13 @@ export function AntigravityConnect() {
                         )}
                     </div>
                     <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <div className={cn("h-1.5 w-1.5 rounded-full shadow-[0_0_8px]", status?.running ? "bg-green-500 shadow-green-500/50" : "bg-red-500 shadow-red-500/50")} />
+                        <div className={cn("h-1.5 w-1.5 rounded-full shadow-[0_0_8px]", plugin?.running ? "bg-green-500 shadow-green-500/50" : "bg-red-500 shadow-red-500/50")} />
                         <span className="text-muted-foreground uppercase font-bold tracking-tighter opacity-70">Server:</span>
-                        <span className="font-medium">{status?.running ? 'Running' : 'Offline'}</span>
+                        <span className="font-medium">{plugin?.running ? 'Running' : 'Offline'}</span>
                     </div>
                     <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <span className="text-muted-foreground uppercase font-bold tracking-tighter opacity-70">Port:</span>
-                        <span className="font-medium text-primary">{status?.port || 8317}</span>
+                        <span className="font-medium text-primary">{plugin?.details?.port || 8317}</span>
                     </div>
                 </div>
             </div>
