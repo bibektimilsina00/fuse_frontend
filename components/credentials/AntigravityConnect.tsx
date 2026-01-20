@@ -11,8 +11,10 @@ import {
     RefreshCcw,
     ChevronRight,
     Settings,
-    Shield
+    Shield,
+    Download
 } from 'lucide-react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { aiApi, AntigravityStatus } from '@/services/api/ai'
 import { cn } from '@/lib/utils'
@@ -138,6 +140,12 @@ export function AntigravityConnect() {
                         <div className={cn("h-1.5 w-1.5 rounded-full shadow-[0_0_8px]", status?.installed ? "bg-green-500 shadow-green-500/50" : "bg-amber-500 shadow-amber-500/50")} />
                         <span className="text-muted-foreground uppercase font-bold tracking-tighter opacity-70">Binary:</span>
                         <span className="font-medium">{status?.installed ? 'Installed' : 'Needs Install'}</span>
+                        {!status?.installed && (
+                            <Link href="/plugins/google-ai-antigravity" className="ml-2 text-primary hover:underline flex items-center gap-1">
+                                <Download className="h-3 w-3" />
+                                Download Plugin
+                            </Link>
+                        )}
                     </div>
                     <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <div className={cn("h-1.5 w-1.5 rounded-full shadow-[0_0_8px]", status?.running ? "bg-green-500 shadow-green-500/50" : "bg-red-500 shadow-red-500/50")} />

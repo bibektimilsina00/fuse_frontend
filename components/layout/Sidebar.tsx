@@ -66,6 +66,11 @@ const bottomNavItems = [
         icon: LayoutDashboard
     },
     {
+        title: 'Plugins',
+        href: '/plugins',
+        icon: Puzzle // Using Puzzle icon we imported earlier
+    },
+    {
         title: 'Analytics',
         href: '/analytics',
         icon: BarChart3
