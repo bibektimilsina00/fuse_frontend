@@ -26,6 +26,13 @@ import { pluginsApi } from '@/services/api/plugins'
 import { cn } from '@/lib/utils'
 import { AntigravityConnect } from '@/components/credentials'
 
+// Required for 'output: export' with dynamic routes
+export async function generateStaticParams() {
+    return [
+        { id: 'google-ai-antigravity' }
+    ]
+}
+
 export default function PluginDetailPage() {
     const params = useParams()
     const router = useRouter()
