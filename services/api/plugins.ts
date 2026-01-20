@@ -25,7 +25,7 @@ export const pluginsApi = {
         return apiClient.get<PluginStatus>(`/plugins/${id}`)
     },
 
-    async performAction(id: string, action: 'install' | 'start' | 'stop' | 'login'): Promise<{ success: boolean; message: string }> {
+    async performAction(id: string, action: 'install' | 'start' | 'stop' | 'login' | 'uninstall'): Promise<{ success: boolean; message: string }> {
         return apiClient.post<{ success: boolean; message: string }>(`/plugins/${id}/action`, { action })
     }
 }

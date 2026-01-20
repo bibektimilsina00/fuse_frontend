@@ -451,6 +451,24 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                                 </div>
                             )}
 
+                            {/* Google AI Plugin Notice */}
+                            {selectedApp?.id === 'google_ai' && (
+                                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mt-4">
+                                    <div className="flex items-start gap-2">
+                                        <div className="text-amber-500 pt-0.5">ℹ️</div>
+                                        <div>
+                                            <h4 className="text-sm font-medium text-amber-500">Plugin Required</h4>
+                                            <p className="text-sm text-muted-foreground mt-1">
+                                                This credential requires the <strong>Google AI / Antigravity</strong> plugin to be installed and running.
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-2">
+                                                If you haven't installed it yet, please go to the <a href="/plugins" target="_blank" className="underline hover:text-foreground">Plugins page</a> first.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* API Key / Webhook URL */}
                             {!selectedApp?.isOAuth && (
                                 <div>

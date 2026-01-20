@@ -19,7 +19,8 @@ import {
     Zap,
     Terminal,
     Cpu,
-    Lock
+    Lock,
+    Trash2
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { pluginsApi } from '@/services/api/plugins'
@@ -42,7 +43,7 @@ export default function PluginDetailPage() {
     })
 
     const actionMutation = useMutation({
-        mutationFn: ({ action }: { action: 'install' | 'start' | 'stop' }) =>
+        mutationFn: ({ action }: { action: 'install' | 'start' | 'stop' | 'uninstall' }) =>
             pluginsApi.performAction(pluginId, action),
         onMutate: () => setIsActionProcessing(true),
         onSettled: () => setIsActionProcessing(false),
@@ -73,7 +74,7 @@ export default function PluginDetailPage() {
 
     const isAntigravity = plugin.id === 'google-ai-antigravity'
 
-    const handleAction = (action: 'install' | 'start' | 'stop') => {
+    const handleAction = (action: 'install' | 'start' | 'stop' | 'uninstall') => {
         actionMutation.mutate({ action })
     }
 
@@ -178,6 +179,16 @@ export default function PluginDetailPage() {
                                             Start Service
                                         </Button>
                                     )}
+
+                                    <Button
+                                        variant="ghost"
+                                        className="gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => handleAction('uninstall')}
+                                        loading={isActionProcessing && actionMutation.variables?.action === 'uninstall'}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        Uninstall Plugin
+                                    </Button>
                                 </>
                             )}
                         </div>
