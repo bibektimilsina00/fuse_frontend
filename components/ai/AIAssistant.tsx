@@ -33,6 +33,8 @@ import { cn } from '@/lib/utils'
 import { CredentialSelector } from '@/components/credentials/CredentialSelector'
 import { aiApi } from '@/services/api/ai'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 type AssistantMode = 'help' | 'create'
 
@@ -178,11 +180,13 @@ const PROVIDER_ICONS: Record<string, string> = {
     default: '⚙️'
 }
 
+import { type AIModel } from '@/services/api/ai'
+
 interface ModelSelectorProps {
     value: string
     onChange: (id: string) => void
     className?: string
-    models: typeof AI_MODELS
+    models: AIModel[]
 }
 
 function ModelSelector({ value, onChange, className, models }: ModelSelectorProps) {
@@ -340,7 +344,9 @@ export function AIAssistant({
     defaultMode = 'help'
 }: AIAssistantProps) {
     const [mode, setMode] = useState<AssistantMode>(defaultMode)
-    const [messages, setMessages] = useState<ChatMessage[]>([])
+    // Separate message histories for each mode
+    const [helpMessages, setHelpMessages] = useState<ChatMessage[]>([])
+    const [createMessages, setCreateMessages] = useState<ChatMessage[]>([])
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [showSettings, setShowSettings] = useState(false)
@@ -348,6 +354,10 @@ export function AIAssistant({
     const [selectedCredentialId, setSelectedCredentialId] = useState('')
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
     const [isMinimized, setIsMinimized] = useState(false)
+
+    // Get the current messages based on mode
+    const messages = mode === 'help' ? helpMessages : createMessages
+    const setMessages = mode === 'help' ? setHelpMessages : setCreateMessages
 
     // Fetch available models from backend
     const { data: availableModels = AI_MODELS } = useQuery({
@@ -426,6 +436,7 @@ export function AIAssistant({
 
         if (mode === 'create' && onCreateWorkflow) {
             try {
+                // Pass credential_id to ensure the right provider is used
                 await onCreateWorkflow(input.trim(), selectedModel, selectedCredentialId || undefined)
                 const successMessage: ChatMessage = {
                     role: 'assistant',
@@ -724,8 +735,38 @@ export function AIAssistant({
                                                             : "bg-muted/50 text-foreground border border-border rounded-tl-sm"
                                                     )}
                                                 >
-                                                    <div className="whitespace-pre-wrap break-words">
-                                                        {message.content}
+                                                    <div className={cn(
+                                                        "prose prose-sm max-w-none break-words",
+                                                        message.role === 'user'
+                                                            ? "prose-invert"
+                                                            : "dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-ul:text-foreground prose-ol:text-foreground"
+                                                    )}>
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[remarkGfm]}
+                                                            components={{
+                                                                p: ({ node, ...props }) => <p className="mb-1.5 last:mb-0" {...props} />,
+                                                                a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" className="underline font-medium" {...props} />,
+                                                                code: ({ node, className, children, ...props }: any) => {
+                                                                    const match = /language-(\w+)/.exec(className || '')
+                                                                    return !match ? (
+                                                                        <code className="bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded font-mono text-xs" {...props}>
+                                                                            {children}
+                                                                        </code>
+                                                                    ) : (
+                                                                        <code className={className} {...props}>
+                                                                            {children}
+                                                                        </code>
+                                                                    )
+                                                                },
+                                                                pre: ({ node, ...props }) => (
+                                                                    <div className="not-prose my-2 bg-black/90 text-white rounded-lg overflow-x-auto p-3 text-xs">
+                                                                        <pre {...props} />
+                                                                    </div>
+                                                                )
+                                                            }}
+                                                        >
+                                                            {message.content}
+                                                        </ReactMarkdown>
                                                     </div>
                                                 </div>
                                                 <div className={cn(

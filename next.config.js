@@ -5,7 +5,8 @@ const allowedDevOrigins = process.env.NEXT_ALLOWED_DEV_ORIGINS
 
 const nextConfig = {
     reactStrictMode: true,
-    output: 'export',  // Generate static HTML/CSS/JS for bundling with Python
+    // Only use static export in production build
+    output: process.env.NODE_ENV === 'production' ? 'export' : undefined,
     trailingSlash: true,  // Required for static export routing
     images: {
         unoptimized: true,  // Required for static export

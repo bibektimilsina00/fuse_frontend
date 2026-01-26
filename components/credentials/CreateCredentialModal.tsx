@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Loader2, Search, ChevronRight, Copy, Check, ExternalLink } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { X, Loader2, Search, ChevronRight, Copy, Check, ExternalLink, Download } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { credentialsApi } from '@/services/api/credentials'
+import { pluginsApi } from '@/services/api/plugins'
 import { cn } from '@/lib/utils'
 
 interface CreateCredentialModalProps {
@@ -116,6 +117,51 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
     const [apiKey, setApiKey] = useState('')
     const [baseUrl, setBaseUrl] = useState('')
 
+    // Plugin Status Check
+    const { data: plugin, refetch: refetchPlugin } = useQuery({
+        queryKey: ['plugin', 'google-ai-antigravity'],
+        queryFn: () => pluginsApi.getPlugin('google-ai-antigravity'),
+        enabled: selectedApp?.id === 'google_ai',
+        refetchInterval: selectedApp?.id === 'google_ai' ? 2000 : false
+    })
+
+    const installPluginMutation = useMutation({
+        mutationFn: () => pluginsApi.performAction('google-ai-antigravity', 'install'),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['plugin', 'google-ai-antigravity'] })
+            // Start it too after install? Maybe let user do it or auto-start? 
+            // For now just install. The user can start it or we can chain it.
+            // Let's keep it simple: install, then they see "Service Stopped" -> Start (if we wanted full automation).
+            // But the requirement says "plugin should completely work". 
+            // Let's try to start it after install automatically in a real flow, but for now just getting it installed is the step.
+            // actually, if we want it to "completely work", we might want to auto-start after install.
+            // But let's stick to the requested "install button".
+        }
+    })
+
+    const startPluginMutation = useMutation({
+        mutationFn: () => pluginsApi.performAction('google-ai-antigravity', 'start'),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['plugin', 'google-ai-antigravity'] })
+        }
+    })
+
+    // Prepare actions
+    const handlePluginInstall = (e: React.MouseEvent) => {
+        e.preventDefault()
+        installPluginMutation.mutate()
+    }
+
+    const handlePluginStart = (e: React.MouseEvent) => {
+        e.preventDefault()
+        startPluginMutation.mutate()
+    }
+
+    // Check if we are blocked by plugin
+    const isPluginReady = selectedApp?.id !== 'google_ai' || (plugin?.installed && plugin?.running)
+    const isPluginInstalling = installPluginMutation.isPending || startPluginMutation.isPending
+
+    // CREDENTIAL CREATION GENERIC
     const createMutation = useMutation({
         mutationFn: (data: { name: string; type: string; data: Record<string, string> }) =>
             credentialsApi.createCredential(data),
@@ -139,6 +185,48 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
             alert("Failed to start device flow: " + err)
         }
     })
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!selectedApp) return
+
+        if (selectedApp.id === 'google_ai' && !isPluginReady) {
+            return // Should be disabled anyway
+        }
+
+        if (selectedApp.id === 'github_copilot') {
+            startDeviceFlowMutation.mutate()
+            return
+        }
+
+        if (selectedApp.isOAuth) {
+            try {
+                setIsConnecting(true)
+                const res = await credentialsApi.getOAuthUrl(selectedApp.id)
+                if (res.url) {
+                    window.location.href = res.url
+                } else {
+                    console.error("No URL returned for OAuth")
+                    setIsConnecting(false)
+                }
+            } catch (err) {
+                console.error("Failed to initiate OAuth:", err)
+                setIsConnecting(false)
+                alert("Failed to connect: " + (err instanceof Error ? err.message : String(err)))
+            }
+            return
+        }
+
+        createMutation.mutate({
+            name,
+            type: selectedApp.id,
+            data: {
+                api_key: apiKey,
+                ...(selectedApp.id === 'ai_provider' && { provider }),
+                ...(baseUrl && { base_url: baseUrl })
+            }
+        })
+    }
 
     // Polling Effect
     useEffect(() => {
@@ -204,44 +292,6 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
             setCopied(true)
             setTimeout(() => setCopied(false), 2000)
         }
-    }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!selectedApp) return
-
-        if (selectedApp.id === 'github_copilot') {
-            startDeviceFlowMutation.mutate()
-            return
-        }
-
-        if (selectedApp.isOAuth) {
-            try {
-                setIsConnecting(true)
-                const res = await credentialsApi.getOAuthUrl(selectedApp.id)
-                if (res.url) {
-                    window.location.href = res.url
-                } else {
-                    console.error("No URL returned for OAuth")
-                    setIsConnecting(false)
-                }
-            } catch (err) {
-                console.error("Failed to initiate OAuth:", err)
-                setIsConnecting(false)
-                alert("Failed to connect: " + (err instanceof Error ? err.message : String(err)))
-            }
-            return
-        }
-
-        createMutation.mutate({
-            name,
-            type: selectedApp.id,
-            data: {
-                api_key: apiKey,
-                ...(selectedApp.id === 'ai_provider' && { provider }),
-                ...(baseUrl && { base_url: baseUrl })
-            }
-        })
     }
 
     const filteredApps = CREDENTIAL_APPS.filter(app =>
@@ -453,17 +503,48 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
 
                             {/* Google AI Plugin Notice */}
                             {selectedApp?.id === 'google_ai' && (
-                                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mt-4">
-                                    <div className="flex items-start gap-2">
-                                        <div className="text-amber-500 pt-0.5">ℹ️</div>
-                                        <div>
-                                            <h4 className="text-sm font-medium text-amber-500">Plugin Required</h4>
-                                            <p className="text-sm text-muted-foreground mt-1">
-                                                This credential requires the <strong>Google AI / Antigravity</strong> plugin to be installed and running.
-                                            </p>
-                                            <p className="text-xs text-muted-foreground mt-2">
-                                                If you haven't installed it yet, please go to the <a href="/plugins" target="_blank" className="underline hover:text-foreground">Plugins page</a> first.
-                                            </p>
+                                <div className={cn(
+                                    "border rounded-lg p-4 mt-4 transition-colors",
+                                    isPluginReady ? "bg-green-500/10 border-green-500/20" : "bg-amber-500/10 border-amber-500/20"
+                                )}>
+                                    <div className="flex items-start gap-3">
+                                        <div className="text-xl pt-0.5">
+                                            {isPluginReady ? '✅' : 'ℹ️'}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className={cn("text-sm font-medium", isPluginReady ? "text-green-600" : "text-amber-500")}>
+                                                {isPluginReady ? "Plugin Ready" : "Plugin Required"}
+                                            </h4>
+
+                                            {!isPluginReady && (
+                                                <div className="mt-2 space-y-3">
+                                                    <p className="text-xs text-muted-foreground">
+                                                        The <strong>Google AI / Antigravity</strong> plugin is required to use this credential.
+                                                    </p>
+
+                                                    {!plugin?.installed ? (
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={handlePluginInstall}
+                                                            disabled={isPluginInstalling}
+                                                            className="w-full gap-2"
+                                                        >
+                                                            {isPluginInstalling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                                            Install Plugin
+                                                        </Button>
+                                                    ) : !plugin?.running ? (
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={handlePluginStart}
+                                                            disabled={isPluginInstalling}
+                                                            className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
+                                                        >
+                                                            {isPluginInstalling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                                            Start Plugin Service
+                                                        </Button>
+                                                    ) : null}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -509,7 +590,14 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={(!selectedApp?.isOAuth && !name) || (!selectedApp?.isOAuth && !apiKey) || createMutation.isPending || startDeviceFlowMutation.isPending || isConnecting}
+                                    disabled={
+                                        (!selectedApp?.isOAuth && !name) ||
+                                        (!selectedApp?.isOAuth && !apiKey) ||
+                                        createMutation.isPending ||
+                                        startDeviceFlowMutation.isPending ||
+                                        isConnecting ||
+                                        (selectedApp?.id === 'google_ai' && !isPluginReady)
+                                    }
                                 >
                                     {createMutation.isPending || startDeviceFlowMutation.isPending || isConnecting ? (
                                         <>

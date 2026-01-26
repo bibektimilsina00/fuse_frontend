@@ -166,7 +166,15 @@ export const workflowApi = {
     },
 
     async generateWithAI(data: AIWorkflowRequest): Promise<AIWorkflowResponse> {
-        return apiClient.post<AIWorkflowResponse>('/ai/generate', data)
+        // Convert camelCase credentialId to snake_case credential_id for backend
+        const requestData = {
+            prompt: data.prompt,
+            current_nodes: data.current_nodes,
+            current_edges: data.current_edges,
+            model: data.model,
+            credential_id: data.credentialId  // Convert to snake_case
+        }
+        return apiClient.post<AIWorkflowResponse>('/ai/generate', requestData)
     },
 
     async executeNode(workflowId: string, nodeId: string, inputData: Record<string, unknown> = {}): Promise<ExecuteNodeResponse> {
