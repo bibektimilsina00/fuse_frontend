@@ -1,7 +1,8 @@
 import ClientWrapper from './ClientWrapper'
 
 // For static export - allow dynamic params (client router handles others)
-export const dynamicParams = true
+// For static export - client router handles others via SPA fallback if configured
+export const dynamicParams = false
 
 // Required for static export - returns one placeholder path
 // Client-side navigation will work for any ID
