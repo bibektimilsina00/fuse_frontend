@@ -52,38 +52,44 @@ export interface UpdateNodeRequest {
 
 export const nodesApi = {
     list: async (): Promise<NodeResponse[]> => {
-        const response = await client.get('/api/v1/nodes/')
-        return response.data
+        return client.get<NodeResponse[]>('/api/v1/nodes/')
     },
 
     get: async (nodeId: string): Promise<any> => {
-        const response = await client.get(`/api/v1/nodes/${nodeId}`)
-        return response.data
+        return client.get<any>(`/api/v1/nodes/${nodeId}`)
     },
 
     create: async (data: CreateNodeRequest): Promise<any> => {
-        const response = await client.post('/api/v1/nodes/create', data)
-        return response.data
+        return client.post<any>('/api/v1/nodes/create', data)
     },
 
     update: async (nodeId: string, data: UpdateNodeRequest): Promise<any> => {
-        const response = await client.put(`/api/v1/nodes/${nodeId}`, data)
-        return response.data
+        return client.put<any>(`/api/v1/nodes/${nodeId}`, data)
     },
 
     delete: async (nodeId: string): Promise<any> => {
-        const response = await client.delete(`/api/v1/nodes/${nodeId}`)
-        return response.data
+        return client.delete<any>(`/api/v1/nodes/${nodeId}`)
     },
 
     uploadIcon: async (nodeId: string, file: File): Promise<any> => {
         const formData = new FormData()
         formData.append('file', file)
-        const response = await client.post(`/api/v1/nodes/${nodeId}/icon`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        })
-        return response.data
+
+        const token = client.getToken();
+        const headers: Record<string, string> = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5678'}/api/v1/nodes/${nodeId}/icon`, {
+            method: 'POST',
+            headers,
+            body: formData
+        });
+
+        if (!res.ok) {
+            throw new Error('Failed to upload icon');
+        }
+        return res.json();
     }
 }
