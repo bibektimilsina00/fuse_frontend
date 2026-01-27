@@ -13,6 +13,7 @@ import { NodeTypeDefinition } from '@/types'
 // Nodes and Edges
 import { NodeDetailsModal } from './nodes'
 import { NODE_TYPES_MAP } from './nodes/registry'
+import { GenericActionNode, GenericTriggerNode, GenericLogicNode } from './nodes'
 import CustomEdge from './CustomEdge'
 
 // Components
@@ -25,8 +26,6 @@ import { NodePanel } from './NodePanel'
 import { FlowCanvas } from './FlowCanvas'
 
 // --- Configuration ---
-
-
 
 const EDGE_TYPES_MAP = {
     custom: CustomEdge,
@@ -81,11 +80,9 @@ export function WorkflowBuilder({
     const [canvasMode, setCanvasMode] = useState<'select' | 'pan'>('select')
     const [searchQuery, setSearchQuery] = useState('')
 
-    // Memoize types to prevent React Flow warnings
-    const nodeTypes = useMemo(() => NODE_TYPES_MAP, [])
-    const edgeTypes = useMemo(() => EDGE_TYPES_MAP, [])
-
     // --- Workflow Logic Hook ---
+    // Moved up so we can use availableNodeTypes in nodeTypes memo
+    const workflowBuilderState = useWorkflowBuilder({ initialNodes, initialEdges, workflowId })
     const {
         nodes,
         edges,
@@ -144,7 +141,33 @@ export function WorkflowBuilder({
         isDirty,
         isSaving,
         handleSave
-    } = useWorkflowBuilder({ initialNodes, initialEdges, workflowId })
+    } = workflowBuilderState
+
+    // Memoize types to prevent React Flow warnings
+    // Dynamically extend NODE_TYPES_MAP with entries for all available backend nodes
+    const nodeTypes = useMemo(() => {
+        const types: Record<string, any> = { ...NODE_TYPES_MAP }
+
+        if (availableNodeTypes) {
+            availableNodeTypes.forEach((t: any) => {
+                // If the node type isn't explicitly mapped in registry.ts, assign a generic component
+                if (!types[t.name]) {
+                    // Determine component based on node kind/category
+                    if (t.type === 'trigger') {
+                        types[t.name] = GenericTriggerNode
+                    } else if (t.type === 'logic' || t.category === 'Logic') {
+                        types[t.name] = GenericLogicNode
+                    } else {
+                        // Default to Action
+                        types[t.name] = GenericActionNode
+                    }
+                }
+            })
+        }
+        return types
+    }, [availableNodeTypes])
+
+    const edgeTypes = useMemo(() => EDGE_TYPES_MAP, [])
 
     // Use internal save state by default, fallback to props if provided
     const activeSaveStatus = externalSaveStatus || saveStatus

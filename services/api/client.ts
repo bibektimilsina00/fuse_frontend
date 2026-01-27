@@ -279,3 +279,4 @@ export class ApiClient {
 }
 
 export const apiClient = ApiClient.getInstance()
+export const client = apiClient // Alias for backward compatibility if needed, or prefer using apiClient directly

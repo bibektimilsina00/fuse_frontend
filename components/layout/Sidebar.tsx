@@ -61,9 +61,14 @@ const mainNavItems = [
 
 const bottomNavItems = [
     {
+        title: 'Nodes',
+        href: '/nodes',
+        icon: Puzzle,
+    },
+    {
         title: 'Templates',
         href: '/templates',
-        icon: LayoutDashboard
+        icon: LayoutDashboard // Or maybe another icon
     },
     {
         title: 'Plugins',

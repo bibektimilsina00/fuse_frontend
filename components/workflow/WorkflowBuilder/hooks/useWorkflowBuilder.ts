@@ -144,7 +144,8 @@ export function useWorkflowBuilder({
                     settings: n.spec.settings,
                     spec: n.spec,
                     workflowId,
-                    executeNode: (nodeId?: string) => handleExecuteNode(nodeId || n.id)
+                    executeNode: (nodeId?: string) => handleExecuteNode(nodeId || n.id),
+                    icon_svg: nodeType?.icon_svg
                 }
             }
         }) || []
@@ -269,7 +270,8 @@ export function useWorkflowBuilder({
                     settings: {}
                 },
                 workflowId,
-                executeNode: (nodeId?: string) => handleExecuteNode(nodeId || newNode.id)
+                executeNode: (nodeId?: string) => handleExecuteNode(nodeId || newNode.id),
+                icon_svg: nodeType.icon_svg
             }
         }
         newNode.data.id = newNode.id

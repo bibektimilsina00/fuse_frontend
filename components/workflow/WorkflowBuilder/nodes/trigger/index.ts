@@ -11,6 +11,4 @@
 export { BaseTriggerNode } from './BaseTriggerNode'
 export type { BaseTriggerNodeData, TriggerNodeConfig } from './BaseTriggerNode'
 
-export { WhatsAppTriggerNode } from './WhatsAppTriggerNode'
-export { EmailTriggerNode } from './EmailTriggerNode'
 export { GenericTriggerNode } from './GenericTriggerNode'

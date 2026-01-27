@@ -29,6 +29,7 @@ export interface BaseLogicNodeData {
     executeNode?: (nodeId?: string) => Promise<void>
     node_name?: string
     icon?: string
+    icon_svg?: string
 }
 
 export interface LogicNodeConfig {

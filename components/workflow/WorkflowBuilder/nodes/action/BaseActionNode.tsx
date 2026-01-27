@@ -34,6 +34,7 @@ export interface BaseActionNodeData {
     label: string
     description?: string
     icon?: string
+    icon_svg?: string
     node_name?: string
     status?: 'idle' | 'running' | 'success' | 'failed' | 'pending' | 'warning'
     config?: Record<string, any>

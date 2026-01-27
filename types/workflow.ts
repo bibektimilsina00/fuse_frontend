@@ -160,6 +160,7 @@ export interface BaseNodeData {
     executeNode?: (nodeId?: string) => Promise<void>
     output?: unknown
     lastResult?: unknown
+    icon_svg?: string
 }
 
 export interface TriggerNodeData extends BaseNodeData {
@@ -257,6 +258,7 @@ export interface NodeTypeDefinition {
     outputs: NodeTypeOutput[]
     credential_type?: string
     trigger_group?: string
+    icon_svg?: string
 }
 
 // =============================================================================
