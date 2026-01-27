@@ -6,8 +6,9 @@ import { nodesApi } from '@/services/api/nodes';
 import { Loader2 } from 'lucide-react';
 import NodeEditor from '../components/NodeEditor';
 
-export default function EditNodePage({ params }: { params: { id: string } }) {
-    const nodeId = params.id;
+export default function EditNodePage({ params }: { params: Promise<{ id: string }> }) {
+    const resolvedParams = React.use(params);
+    const nodeId = resolvedParams.id;
 
     const { data: node, isLoading, error } = useQuery({
         queryKey: ['node', nodeId],
