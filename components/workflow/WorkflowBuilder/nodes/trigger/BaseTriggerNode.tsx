@@ -129,7 +129,7 @@ export const BaseTriggerNode = memo((props: BaseTriggerNodeProps) => {
                     {/* Node Body */}
                     <div
                         className={cn(
-                            "relative w-20 h-20 bg-card/90 backdrop-blur-xl border-2 transition-all duration-300 overflow-hidden",
+                            "relative w-24 h-20 bg-card/90 backdrop-blur-xl border-2 transition-all duration-300 overflow-hidden",
                             selected ? "border-primary ring-4 ring-primary/20" : "border-border hover:border-border-strong",
                             hasSuccess && "border-emerald-500 ring-4 ring-emerald-500/10",
                             isFailed && "border-destructive ring-4 ring-destructive/10",

@@ -18,6 +18,7 @@ import type {
     NodeTypeDefinition,
     NodeKind
 } from '@/types'
+import { NODE_TYPES_MAP } from '../nodes/registry'
 
 // Note: Using Node<any> for React Flow compatibility
 // Type definitions in @/types provide documentation for the expected structure
@@ -125,7 +126,12 @@ export function useWorkflowBuilder({
 
             // For ReactFlow, use 'default' if node_name is unknown/undefined
             // This ensures proper rendering while preserving the actual node_name in data
-            const reactFlowType = (nodeName && nodeName !== 'unknown') ? nodeName : 'default'
+            let reactFlowType = (nodeName && nodeName !== 'unknown') ? nodeName : 'default'
+
+            // If it's an auxiliary node (Model, Tool, Memory), use CircularNode unless it has a specialized component
+            if (nodeType?.connectionType === 'auxiliary' && !(NODE_TYPES_MAP as Record<string, any>)[reactFlowType]) {
+                reactFlowType = 'circular'
+            }
 
             if (!n.spec || !n.ui || !n.ui.position) {
                 console.error('CRITICAL: Malformed node data from backend', n)
@@ -253,9 +259,24 @@ export function useWorkflowBuilder({
             return acc
         }, {}) || {}
 
+        // Check if there is a specialized component registered for this node name (e.g. 'ai.agent')
+        const specializedType = (NODE_TYPES_MAP as Record<string, any>)[nodeType.name]
+
+        let reactFlowType = nodeType.name // Default: try the ID first (if specialized)
+
+        if (specializedType) {
+            reactFlowType = nodeType.name;
+        } else if (nodeType.connectionType === 'auxiliary') {
+            // If connectionType is auxiliary AND no specialized component, use circular
+            reactFlowType = 'circular';
+        } else {
+            // Otherwise fallback to generic types (action, trigger, logic)
+            reactFlowType = nodeType.type;
+        }
+
         const newNode: Node = {
             id: `${nodeType.name}-${Date.now()}`,
-            type: nodeType.name,
+            type: reactFlowType,
             position: { x: 500, y: 300 },
             data: {
                 id: `${nodeType.name}-${Date.now()}`,
@@ -292,7 +313,7 @@ export function useWorkflowBuilder({
         } else if (pendingConnection) {
 
             if (pendingConnection.source) {
-                newNode.position = { x: pendingConnection.x + 150, y: pendingConnection.y - 40 }
+                newNode.position = { x: pendingConnection.x, y: pendingConnection.y }
                 nextEdges = [...edges, {
                     id: `edge-${pendingConnection.source}-${newNode.id}`,
                     source: pendingConnection.source,

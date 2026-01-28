@@ -22,32 +22,61 @@ interface NodeEditorProps {
 
 const DEFAULT_MANIFEST: NodeManifest = {
     id: '',
+    version: 1,
+    nodeVersion: '1.0.0',
+    displayName: '',
     name: '',
-    version: '1.0.0',
-    category: 'custom',
+    category: 'ACTION',
     description: '',
+    service: 'core',
+    connectionType: 'flow',
     inputs: [],
     outputs: [],
-    tags: []
+    tags: [],
+    author: 'Fuse'
 };
 
 const DEFAULT_CODE = `
-def execute(inputs: dict) -> dict:
+from typing import List, Dict, Any
+from fuse.workflows.engine.context import NodeContext
+from fuse.workflows.engine.definitions import WorkflowItem
+
+async def execute(context: NodeContext) -> List[WorkflowItem]:
     """
-    Execute the node logic.
+    Execute custom node logic.
     
     Args:
-        inputs: Dictionary containing input values defined in manifest
+        context: NodeContext containing config, inputs, and credentials.
         
     Returns:
-        Dictionary containing output values defined in manifest
+        List[WorkflowItem]: The output data items.
     """
-    # Your code here
-    result = f"Hello {inputs.get('name', 'World')}"
+    # 1. Get Inputs (resolved from config or previous nodes)
+    config = context.resolve_config()
+    items = context.input_data # List[WorkflowItem] from previous steps
     
-    return {
-        "result": result
-    }
+    # 2. Process Data
+    result_items = []
+    
+    # Example: Process each input item
+    if items:
+        for item in items:
+            # Access JSON data
+            data = item.json_data
+            
+            # Perform logic
+            new_data = {
+                "original": data,
+                "processed": True,
+                "message": f"Processed {data.get('id', 'unknown')}"
+            }
+            
+            result_items.append(WorkflowItem(json=new_data))
+    else:
+        # Or produce a single output if no inputs
+        result_items.append(WorkflowItem(json={"message": "No inputs provided, but I ran!"}))
+        
+    return result_items
 `;
 
 export default function NodeEditor({ mode, initialData, nodeId }: NodeEditorProps) {
@@ -169,7 +198,7 @@ export default function NodeEditor({ mode, initialData, nodeId }: NodeEditorProp
                     </Button>
                     <div>
                         <h1 className="text-xl font-semibold tracking-tight">
-                            {mode === 'create' ? 'Create New Node' : `Edit ${manifest.name}`}
+                            {mode === 'create' ? 'Create New Node' : `Edit ${manifest.displayName}`}
                         </h1>
                         <p className="text-sm text-muted-foreground">
                             {mode === 'create' ? 'Define inputs, outputs, and logic for your custom node.' : `ID: ${manifest.id}`}
@@ -220,7 +249,7 @@ export default function NodeEditor({ mode, initialData, nodeId }: NodeEditorProp
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="node-id">Node ID (unique)</Label>
+                                        <Label htmlFor="node-id">Node ID (unique identifier)</Label>
                                         <Input
                                             id="node-id"
                                             value={manifest.id}
@@ -228,15 +257,46 @@ export default function NodeEditor({ mode, initialData, nodeId }: NodeEditorProp
                                             placeholder="e.g., custom.my_node"
                                             disabled={mode === 'edit'}
                                         />
-                                        <p className="text-xs text-muted-foreground">dots permitted, no spaces.</p>
+                                        <p className="text-xs text-muted-foreground">Internal package ID, no spaces.</p>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="node-name">Display Name</Label>
+                                        <Label htmlFor="display-name">Display Name</Label>
                                         <Input
-                                            id="node-name"
-                                            value={manifest.name}
-                                            onChange={(e) => handleInputChange('name', e.target.value)}
+                                            id="display-name"
+                                            value={manifest.displayName}
+                                            onChange={(e) => handleInputChange('displayName', e.target.value)}
                                             placeholder="e.g., My Custom Node"
+                                        />
+                                        <p className="text-xs text-muted-foreground">User-friendly name shown in UI.</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="node-version">Node Version</Label>
+                                        <Input
+                                            id="node-version"
+                                            value={manifest.nodeVersion}
+                                            onChange={(e) => handleInputChange('nodeVersion', e.target.value)}
+                                            placeholder="1.0.0"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="version">Engine Version (Schema)</Label>
+                                        <Input
+                                            id="version"
+                                            type="number"
+                                            value={manifest.version}
+                                            onChange={(e) => handleInputChange('version', parseInt(e.target.value) || 1)}
+                                            placeholder="1"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="author">Author</Label>
+                                        <Input
+                                            id="author"
+                                            value={manifest.author || 'Fuse'}
+                                            onChange={(e) => handleInputChange('author', e.target.value)}
+                                            placeholder="Your Name"
                                         />
                                     </div>
                                 </div>
@@ -249,24 +309,45 @@ export default function NodeEditor({ mode, initialData, nodeId }: NodeEditorProp
                                         placeholder="Describe what this node does..."
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-3 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="category">Category</Label>
-                                        <Input
+                                        <select
                                             id="category"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                             value={manifest.category}
                                             onChange={(e) => handleInputChange('category', e.target.value)}
-                                            placeholder="e.g., custom, tools, ai"
+                                        >
+                                            <option value="TRIGGER">TRIGGER</option>
+                                            <option value="ACTION">ACTION</option>
+                                            <option value="LOGIC">LOGIC</option>
+                                            <option value="UTILITY">UTILITY</option>
+                                            <option value="AI">AI</option>
+                                            <option value="AI_TOOL">AI_TOOL</option>
+                                            <option value="AI_MEMORY">AI_MEMORY</option>
+                                            <option value="AI_CHAT_MODEL">AI_CHAT_MODEL</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="service">Service</Label>
+                                        <Input
+                                            id="service"
+                                            value={manifest.service || 'custom'}
+                                            onChange={(e) => handleInputChange('service', e.target.value)}
+                                            placeholder="e.g., custom"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="version">Version</Label>
-                                        <Input
-                                            id="version"
-                                            value={manifest.version}
-                                            onChange={(e) => handleInputChange('version', e.target.value)}
-                                            placeholder="1.0.0"
-                                        />
+                                        <Label htmlFor="connection-type">Connection Type</Label>
+                                        <select
+                                            id="connection-type"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                            value={manifest.connectionType}
+                                            onChange={(e) => handleInputChange('connectionType', e.target.value)}
+                                        >
+                                            <option value="flow">Flow (Incoming connection)</option>
+                                            <option value="auxiliary">Auxiliary (Config-only)</option>
+                                        </select>
                                     </div>
                                 </div>
                             </CardContent>
@@ -319,6 +400,18 @@ export default function NodeEditor({ mode, initialData, nodeId }: NodeEditorProp
                                                         placeholder="Label"
                                                         className="h-8"
                                                     />
+                                                    <Input
+                                                        value={input.description}
+                                                        onChange={(e) => updateInput(idx, 'description', e.target.value)}
+                                                        placeholder="Description"
+                                                        className="h-8"
+                                                    />
+                                                    <Input
+                                                        value={input.placeholder}
+                                                        onChange={(e) => updateInput(idx, 'placeholder', e.target.value)}
+                                                        placeholder="Placeholder"
+                                                        className="h-8"
+                                                    />
                                                 </div>
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeInput(idx)}>
                                                     <Trash2 className="w-4 h-4" />
@@ -335,6 +428,9 @@ export default function NodeEditor({ mode, initialData, nodeId }: NodeEditorProp
                                                     <option value="boolean">Boolean</option>
                                                     <option value="json">JSON</option>
                                                     <option value="select">Select</option>
+                                                    <option value="dateTime">Date/Time</option>
+                                                    <option value="color">Color</option>
+                                                    <option value="collection">Collection</option>
                                                 </select>
                                                 <div className="flex items-center space-x-2">
                                                     <input
@@ -382,6 +478,12 @@ export default function NodeEditor({ mode, initialData, nodeId }: NodeEditorProp
                                                         placeholder="Label"
                                                         className="h-8"
                                                     />
+                                                    <Input
+                                                        value={output.description}
+                                                        onChange={(e) => updateOutput(idx, 'description', e.target.value)}
+                                                        placeholder="Description"
+                                                        className="h-8"
+                                                    />
                                                 </div>
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeOutput(idx)}>
                                                     <Trash2 className="w-4 h-4" />
@@ -398,6 +500,7 @@ export default function NodeEditor({ mode, initialData, nodeId }: NodeEditorProp
                                                     <option value="boolean">Boolean</option>
                                                     <option value="json">JSON</option>
                                                     <option value="any">Any</option>
+                                                    <option value="collection">Collection</option>
                                                 </select>
                                             </div>
                                         </CardContent>

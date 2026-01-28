@@ -12,6 +12,7 @@ interface QuickAddButtonProps {
     style?: React.CSSProperties
     connectionType?: 'source' | 'target'
     filterType?: string
+    allowMultiple?: boolean
 }
 
 export function QuickAddButton({
@@ -21,7 +22,8 @@ export function QuickAddButton({
     color = '#3b82f6',
     style,
     connectionType = 'source',
-    filterType
+    filterType,
+    allowMultiple = false
 }: QuickAddButtonProps) {
     const { getNode } = useReactFlow()
     const edges = useEdges()
@@ -54,8 +56,8 @@ export function QuickAddButton({
         }
     })
 
-    // Only show if not connected
-    if (isConnected) return null
+    // Only show if not connected, unless allowMultiple is true
+    if (isConnected && !allowMultiple) return null
 
     const handleAddClick = (e: React.MouseEvent) => {
         e.stopPropagation()

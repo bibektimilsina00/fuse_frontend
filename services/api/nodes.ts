@@ -6,32 +6,45 @@ export interface NodeInputSchema {
     label: string
     required?: boolean
     default?: any
-    options?: { label: string, value: any }[]
+    options?: any // Can be SelectOption[] or nested NodeInputSchema[]
     description?: string
+    placeholder?: string
+    displayOptions?: any
+    typeOptions?: any
 }
 
 export interface NodeOutputSchema {
     name: string
     type: string
-    label: string
+    label?: string
     description?: string
 }
 
 export interface NodeManifest {
     id: string
-    name: string
-    version: string
+    version: number
+    nodeVersion: string
+    name?: string
+    displayName: string
     category: string
+    service?: string
+    connectionType?: 'flow' | 'auxiliary'
     description: string
+    icon?: string
+    icon_svg?: string
     inputs: NodeInputSchema[]
     outputs: NodeOutputSchema[]
     tags: string[]
+    author?: string
+    credentials?: string[]
+    webhook?: boolean
 }
 
 export interface NodeResponse {
     id: string
     name: string
-    version: string
+    version: number | string
+    nodeVersion?: string
     category: string
     description: string
     manifest: NodeManifest

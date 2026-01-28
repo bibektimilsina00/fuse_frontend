@@ -84,9 +84,12 @@ export const AIAgentNode = memo((props: NodeProps<BaseActionNodeData>) => {
                             </div>
 
                             <div className="flex-1 min-w-0 text-left">
-                                <div className="font-bold text-base text-foreground leading-tight">AI Agent</div>
-                                <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono opacity-70 mt-0.5">
-                                    Autonomous
+                                <div className="font-bold text-base text-foreground leading-tight truncate">
+                                    {data.settings?.goal || data.label || 'AI Agent'}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono opacity-70 mt-0.5 flex items-center gap-1.5">
+                                    <span className="w-1 h-1 rounded-full bg-violet-500" />
+                                    Autonomous Agent
                                 </div>
                             </div>
 
@@ -184,6 +187,7 @@ export const AIAgentNode = memo((props: NodeProps<BaseActionNodeData>) => {
                             color={CONFIG.color}
                             style={{ top: '0px' }}
                             filterType="ai_tool"
+                            allowMultiple={true}
                         />
                     </div>
                 </div>
