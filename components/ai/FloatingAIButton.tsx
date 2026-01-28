@@ -11,7 +11,7 @@ interface FloatingAIButtonProps {
     className?: string
 }
 
-export function FloatingAIButton({ onCreateWorkflow, className }: FloatingAIButtonProps) {
+export function FloatingAIButton({ className }: FloatingAIButtonProps) {
     const { openAssistant } = useAIAssistant()
     const [isHovered, setIsHovered] = useState(false)
 
@@ -27,63 +27,35 @@ export function FloatingAIButton({ onCreateWorkflow, className }: FloatingAIButt
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 className={cn(
-                    "group relative flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl",
-                    "bg-gradient-to-tr from-indigo-500 via-primary to-emerald-400",
-                    "hover:shadow-[0_0_40px_rgba(99,102,241,0.4)]",
+                    "relative h-14 w-14 flex items-center justify-center rounded-full shadow-2xl",
+                    "bg-primary text-primary-foreground",
+                    "hover:shadow-[0_0_30px_rgba(var(--primary),0.3)]",
                     "transition-all duration-300 ease-out",
-                    "border-2 border-white/20"
+                    "border border-white/10"
                 )}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.1, y: -4 }}
+                whileTap={{ scale: 0.9 }}
             >
-                {/* Animated gradient background */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-indigo-600 via-primary to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                
-                {/* Glow effect */}
+                {/* Subtle Glow Ring */}
                 <motion.div
-                    className="absolute inset-0 rounded-2xl bg-primary/50 blur-xl"
+                    className="absolute inset-0 rounded-full border-2 border-primary/30"
                     animate={{
-                        opacity: [0.3, 0.6, 0.3],
-                        scale: [0.95, 1.05, 0.95],
+                        scale: [1, 1.2, 1],
+                        opacity: [0.5, 0, 0.5],
                     }}
                     transition={{
-                        duration: 3,
+                        duration: 2,
                         repeat: Infinity,
-                        ease: "easeInOut"
+                        ease: "linear"
                     }}
                 />
 
                 {/* Content */}
-                <div className="relative flex items-center gap-3">
-                    <motion.div
-                        animate={{ rotate: isHovered ? [0, -10, 10, -10, 0] : 0 }}
-                        transition={{ duration: 0.5 }}
-                    >
-                        <Sparkles className="h-5 w-5 text-white" />
-                    </motion.div>
-                    
-                    <motion.span
-                        className="text-white font-semibold text-sm whitespace-nowrap"
-                        initial={{ width: 0, opacity: 0 }}
-                        animate={{ width: "auto", opacity: 1 }}
-                        transition={{ delay: 0.7, duration: 0.3 }}
-                    >
-                        AI Assistant
-                    </motion.span>
-
-                    {/* Pulse indicator */}
-                    <motion.div
-                        className="absolute -top-1 -right-1 h-3 w-3 bg-emerald-400 rounded-full border-2 border-white"
-                        animate={{
-                            scale: [1, 1.3, 1],
-                            opacity: [1, 0.7, 1]
-                        }}
-                        transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            ease: "easeInOut"
-                        }}
-                    />
+                <div className="relative z-10">
+                    <Sparkles className={cn(
+                        "h-6 w-6 transition-transform duration-500",
+                        isHovered ? "rotate-12 scale-110" : ""
+                    )} />
                 </div>
             </motion.button>
 
@@ -91,13 +63,13 @@ export function FloatingAIButton({ onCreateWorkflow, className }: FloatingAIButt
             <AnimatePresence>
                 {isHovered && (
                     <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                        className="absolute bottom-full right-0 mb-3 px-3 py-2 bg-popover text-popover-foreground rounded-lg shadow-lg border border-border text-xs font-medium whitespace-nowrap"
+                        initial={{ opacity: 0, x: 20, scale: 0.9 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: 20, scale: 0.9 }}
+                        className="absolute bottom-0 right-full mr-4 px-4 py-2 bg-popover/80 backdrop-blur-xl text-popover-foreground rounded-2xl shadow-xl border border-border text-[13px] font-semibold whitespace-nowrap"
                     >
-                        Get help or create workflows with AI
-                        <div className="absolute bottom-0 right-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-popover border-r border-b border-border" />
+                        AI Assistant
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 rotate-45 w-2.5 h-2.5 bg-popover border-r border-t border-border" />
                     </motion.div>
                 )}
             </AnimatePresence>

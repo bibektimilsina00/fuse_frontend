@@ -52,23 +52,23 @@ export interface UpdateNodeRequest {
 
 export const nodesApi = {
     list: async (): Promise<NodeResponse[]> => {
-        return client.get<NodeResponse[]>('/api/v1/nodes/')
+        return client.get<NodeResponse[]>('/nodes/')
     },
 
     get: async (nodeId: string): Promise<any> => {
-        return client.get<any>(`/api/v1/nodes/${nodeId}`)
+        return client.get<any>(`/nodes/${nodeId}`)
     },
 
     create: async (data: CreateNodeRequest): Promise<any> => {
-        return client.post<any>('/api/v1/nodes/create', data)
+        return client.post<any>('/nodes/create', data)
     },
 
     update: async (nodeId: string, data: UpdateNodeRequest): Promise<any> => {
-        return client.put<any>(`/api/v1/nodes/${nodeId}`, data)
+        return client.put<any>(`/nodes/${nodeId}`, data)
     },
 
     delete: async (nodeId: string): Promise<any> => {
-        return client.delete<any>(`/api/v1/nodes/${nodeId}`)
+        return client.delete<any>(`/nodes/${nodeId}`)
     },
 
     uploadIcon: async (nodeId: string, file: File): Promise<any> => {

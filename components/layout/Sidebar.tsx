@@ -20,7 +20,11 @@ import {
     Plus,
     Search,
     ChevronDown,
-    MoreHorizontal
+    MoreHorizontal,
+    Database,
+    Braces,
+    Plug,
+    Boxes
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
@@ -52,10 +56,16 @@ const mainNavItems = [
         badge: null
     },
     {
+        title: 'Data Tables',
+        href: '/datatables',
+        icon: Database,
+        badge: 'New'
+    },
+    {
         title: 'Variables',
         href: '/variables',
-        icon: Puzzle,
-        badge: 'Soon'
+        icon: Braces,
+        badge: null
     },
 ]
 
@@ -63,7 +73,7 @@ const bottomNavItems = [
     {
         title: 'Nodes',
         href: '/nodes',
-        icon: Puzzle,
+        icon: Boxes,
     },
     {
         title: 'Templates',
@@ -73,7 +83,7 @@ const bottomNavItems = [
     {
         title: 'Plugins',
         href: '/plugins',
-        icon: Puzzle // Using Puzzle icon we imported earlier
+        icon: Plug
     },
     {
         title: 'Analytics',
@@ -92,8 +102,11 @@ const bottomNavItems = [
     }
 ]
 
+import { useAuth } from '@/components/providers'
+
 export function Sidebar() {
     const pathname = usePathname()
+    const { user, logout } = useAuth()
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
 
@@ -284,14 +297,20 @@ export function Sidebar() {
                 >
                     {/* Avatar */}
                     <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center shrink-0">
-                        <span className="text-sm font-semibold text-white">A</span>
+                        <span className="text-sm font-semibold text-white">
+                            {user?.full_name?.charAt(0) || user?.email?.charAt(0).toUpperCase() || 'U'}
+                        </span>
                     </div>
 
                     {!isCollapsed && (
                         <>
                             <div className="flex-1 overflow-hidden min-w-0">
-                                <p className="text-sm font-medium truncate text-foreground">Admin</p>
-                                <p className="text-xs text-muted-foreground truncate">admin@fuse.io</p>
+                                <p className="text-sm font-medium truncate text-foreground">
+                                    {user?.full_name || 'User'}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                    {user?.email || 'user@example.com'}
+                                </p>
                             </div>
                             <MoreHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
                         </>
@@ -308,7 +327,7 @@ export function Sidebar() {
                             >
                                 <div className="p-1">
                                     <Link
-                                        href="/settings/profile"
+                                        href="/settings"
                                         className="dropdown-item"
                                         onClick={() => setShowUserMenu(false)}
                                     >
@@ -324,7 +343,10 @@ export function Sidebar() {
                                         <span>Settings</span>
                                     </Link>
                                     <div className="border-t border-border my-1" />
-                                    <button className="dropdown-item w-full text-red-500 hover:bg-red-500/10">
+                                    <button
+                                        onClick={() => logout()}
+                                        className="dropdown-item w-full text-red-500 hover:bg-red-500/10"
+                                    >
                                         <LogOut className="h-4 w-4" />
                                         <span>Log out</span>
                                     </button>
@@ -335,5 +357,6 @@ export function Sidebar() {
                 </div>
             </div>
         </motion.aside>
+
     )
 }

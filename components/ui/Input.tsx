@@ -2,16 +2,19 @@ import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { twMerge } from 'tailwind-merge'
 
-const inputVariants = cva('block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100', {
-    variants: {
-        size: {
-            sm: 'py-1.5 text-sm',
-            md: 'py-2 text-sm',
-            lg: 'py-3 text-base',
+const inputVariants = cva(
+    'flex h-10 w-full rounded-xl border border-border bg-muted/40 px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200',
+    {
+        variants: {
+            size: {
+                sm: 'h-8 px-3 text-xs',
+                md: 'h-10 px-4 text-sm',
+                lg: 'h-12 px-6 text-base',
+            },
         },
-    },
-    defaultVariants: { size: 'md' },
-})
+        defaultVariants: { size: 'md' },
+    }
+)
 
 export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>, VariantProps<typeof inputVariants> { }
 

@@ -26,6 +26,7 @@ export function TopNav() {
     const [mounted, setMounted] = useState(false)
     const [showThemeMenu, setShowThemeMenu] = useState(false)
     const [showHelpMenu, setShowHelpMenu] = useState(false)
+    const [showNotifications, setShowNotifications] = useState(false)
 
     useEffect(() => {
         setMounted(true)
@@ -116,15 +117,57 @@ export function TopNav() {
                     </div>
 
                     {/* Notifications */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-muted-foreground hover:text-foreground relative"
-                    >
-                        <Bell className="h-4 w-4" />
-                        {/* Notification Badge */}
-                        <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-primary rounded-full" />
-                    </Button>
+                    <div className="relative">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-muted-foreground hover:text-foreground relative"
+                            onClick={() => setShowNotifications(!showNotifications)}
+                        >
+                            <Bell className="h-4 w-4" />
+                            {/* Notification Badge */}
+                            <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-primary rounded-full" />
+                        </Button>
+
+                        {showNotifications && (
+                            <>
+                                <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setShowNotifications(false)}
+                                />
+                                <div className="absolute right-0 top-full mt-2 w-80 bg-popover border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+                                    <div className="p-4 border-b border-border flex items-center justify-between">
+                                        <h3 className="text-sm font-semibold">Notifications</h3>
+                                        <button className="text-[10px] text-primary font-bold uppercase hover:underline">Mark all read</button>
+                                    </div>
+                                    <div className="max-h-[400px] overflow-y-auto">
+                                        {[
+                                            { title: 'Workflow Succeeded', desc: 'Marketing Sync completed in 1.2s', time: '5m ago', type: 'success' },
+                                            { title: 'New Device Login', desc: 'Login detected from Chrome on Mac', time: '2h ago', type: 'alert' },
+                                            { title: 'API Key Expiring', desc: 'Production key expires in 3 days', time: '1d ago', type: 'warning' },
+                                        ].map((n, i) => (
+                                            <div key={i} className="p-4 border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer last:border-0">
+                                                <div className="flex items-start gap-3">
+                                                    <div className={cn(
+                                                        "h-2 w-2 mt-1.5 rounded-full shrink-0",
+                                                        n.type === 'success' ? 'bg-emerald-500' : n.type === 'warning' ? 'bg-amber-500' : 'bg-primary'
+                                                    )} />
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs font-bold leading-none">{n.title}</p>
+                                                        <p className="text-[10px] text-muted-foreground leading-relaxed">{n.desc}</p>
+                                                        <p className="text-[9px] text-muted-foreground/60">{n.time}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="p-2 border-t border-border bg-muted/20 text-center">
+                                        <Button variant="ghost" size="sm" className="w-full text-xs h-8">View all notifications</Button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
 
                     {/* Theme Toggle */}
                     <div className="relative">

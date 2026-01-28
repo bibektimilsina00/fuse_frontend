@@ -247,18 +247,53 @@ export interface NodeTypeOutput {
     type: string
 }
 
-export interface NodeTypeDefinition {
+export interface DisplayRule {
+    [key: string]: unknown[]
+}
+
+export interface DisplayConfiguration {
+    show?: Record<string, unknown[]>
+    hide?: Record<string, unknown[]>
+}
+
+export interface NodeInputV2 {
     name: string
+    type: string
     label: string
+    required?: boolean
+    default?: unknown
+    description?: string
+    placeholder?: string
+    options?: Array<{ label: string; value: unknown; description?: string }> | NodeInputV2[]
+    displayOptions?: DisplayConfiguration
+    typeOptions?: {
+        loadOptionsMethod?: string
+        loadOptionsDependsOn?: string[]
+        rows?: number
+        language?: string
+    }
+}
+
+export interface NodeManifestV2 {
+    id: string
+    version: number
+    displayName: string
     description: string
-    type: string // 'action' | 'trigger' | 'logic'
+    category: string // 'TRIGGER' | 'ACTION' | 'LOGIC' | 'UTILITY' | 'AI'
+    service?: string
+    connectionType?: 'flow' | 'auxiliary'
     icon?: string
-    category: string // 'Data', 'Communication', etc.
-    inputs: NodeTypeInput[]
-    outputs: NodeTypeOutput[]
-    credential_type?: string
-    trigger_group?: string
     icon_svg?: string
+    inputs: NodeInputV2[]
+    outputs: NodeTypeOutput[]
+    tags?: string[]
+    author?: string
+}
+
+export interface NodeTypeDefinition extends NodeManifestV2 {
+    // compatibility aliases if needed
+    label: string
+    type: string
 }
 
 // =============================================================================

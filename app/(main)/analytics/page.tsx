@@ -13,7 +13,7 @@ import {
     Calendar,
     ArrowUpRight,
     ArrowDownRight,
-    Puzzle
+    Braces
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
@@ -39,7 +39,7 @@ const ICON_MAP: Record<string, any> = {
     Clock,
     XCircle,
     Activity,
-    Puzzle
+    Braces
 }
 
 function StatCard({

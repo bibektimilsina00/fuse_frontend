@@ -22,39 +22,19 @@ import { CustomSelect } from './NodeConfigPanel/CustomSelect'
 import { LogoWhatsApp, LogoPython, LogoGoogleSheets } from '../icons/BrandIcons'
 import { workflowApi } from '@/services/api/workflows'
 import type { Node, Edge } from 'reactflow'
-import type { BaseNodeData, NodeTypeOutput } from '@/types/workflow'
+import { NodeInputV2, NodeManifestV2, NodeTypeOutput, BaseNodeData } from '@/types/workflow'
+import { FixedCollectionInput } from './inputs/FixedCollectionInput'
+import { CollectionInput } from './inputs/CollectionInput'
+import { DateTimeInput } from './inputs/DateTimeInput'
+import { useNodeDisplayLogic } from '@/hooks/useNodeDisplayLogic'
+
 import type { ComponentType } from 'react'
 
 type IconComponent = LucideIcon | ComponentType<{ className?: string }>
 
-interface NodeInput {
-    name: string
-    type: string
-    label: string
-    required?: boolean
-    default?: unknown
-    options?: { label: string; value: string }[]
-    description?: string
-    credential_type?: string
-    dynamic_options?: string
-    dynamic_dependencies?: string[]
-    show_if?: Record<string, any>
-}
-
-interface NodeSchema {
-    name: string
-    label: string
-    type: string
-    icon: string
-    description: string
-    inputs: NodeInput[]
-    outputs: NodeTypeOutput[]
-    category: string
-}
-
 interface NodeDetailsModalProps {
     node: Node<BaseNodeData>
-    schema: NodeSchema
+    schema: NodeManifestV2
     allNodes: Node<BaseNodeData>[]
     edges: Edge[]
     onSelectNode: (node: Node<BaseNodeData>) => void
@@ -241,12 +221,19 @@ export const NodeDetailsModal = ({
     const [settings, setSettings] = useState<any>(node.data.settings || {})
     const [activeTab, setActiveTab] = useState<'parameters' | 'settings'>('parameters')
 
+    // Use our new hook for display logic
+    const visibleInputs = useNodeDisplayLogic(schema?.inputs || [], formData)
+
     // Dynamic Options Queries using React Query
     const dynamicOptionQueries = useQueries({
         queries: schema.inputs.map(input => {
-            const hasDynamic = (input as any).dynamic_options;
-            const method = (input as any).dynamic_options;
-            const deps = (input as any).dynamic_dependencies || [];
+            const typeOpts = input.typeOptions || {};
+            const method = typeOpts.loadOptionsMethod;
+            // @ts-ignore
+            const hasDynamic = !!method || !!(input as any).dynamic_options;
+
+            // @ts-ignore
+            const deps = typeOpts.loadOptionsDependsOn || (input as any).dynamic_dependencies || [];
 
             // Calculate current dependency values
             const dependencyValues: Record<string, any> = {};
@@ -255,12 +242,17 @@ export const NodeDetailsModal = ({
             // Check if enabled (has meaningful dependencies)
             const enabled = hasDynamic && Object.values(dependencyValues).some(v => v !== undefined && v !== '' && v !== null);
 
+            // @ts-ignore
+            const methodName = method || (input as any).dynamic_options;
+
             return {
-                queryKey: ['node-options', schema.name, input.name, dependencyValues],
+                // @ts-ignore
+                queryKey: ['node-options', schema.name || schema.id, input.name, dependencyValues],
                 queryFn: async () => {
                     const res = await workflowApi.getNodeOptions(
-                        schema.name,
-                        method,
+                        // @ts-ignore
+                        schema.name || schema.id,
+                        methodName,
                         dependencyValues
                     );
                     return res;
@@ -418,7 +410,7 @@ export const NodeDetailsModal = ({
                             onChange={(e) => onUpdate(node.id, { ...node.data, label: e.target.value })}
                             className="text-sm font-bold bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 rounded-sm px-1 -ml-1 w-96 hover:bg-white/5"
                         />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 px-2 py-0.5 rounded-sm border border-border/50">{schema.label}</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 px-2 py-0.5 rounded-sm border border-border/50">{schema.displayName || schema.id}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -521,8 +513,9 @@ export const NodeDetailsModal = ({
                                                 <p className="text-[10px] uppercase font-bold tracking-widest">Default Configuration Only</p>
                                             </div>
                                         ) : (
-                                            schema.inputs.map(input => {
+                                            visibleInputs.map(input => {
                                                 if ((input as any).show_if) {
+                                                    // Legacy fallback
                                                     const isVisible = Object.entries((input as any).show_if).every(([key, val]) => formData[key] === val)
                                                     if (!isVisible) return null
                                                 }
@@ -596,7 +589,7 @@ export const NodeDetailsModal = ({
                                                                 <CodeEditor
                                                                     value={formData[input.name] || input.default || ''}
                                                                     onChange={(val) => handleChange(input.name, val)}
-                                                                    language={schema.name.includes('python') ? 'python' : 'javascript'}
+                                                                    language={schema.id.includes('python') ? 'python' : 'javascript'}
                                                                     height="400px"
                                                                     nodeId={node.id}
                                                                 />
@@ -605,7 +598,8 @@ export const NodeDetailsModal = ({
                                                             <CustomSelect
                                                                 value={formData[input.name] || input.default || ''}
                                                                 onChange={(val) => handleChange(input.name, val)}
-                                                                options={dynamicOptionQueries[schema.inputs.indexOf(input)]?.data || input.options || []}
+                                                                // @ts-ignore
+                                                                options={dynamicOptionQueries[schema.inputs.indexOf(input)]?.data || (input.options as any[]) || []}
                                                                 placeholder={`Select ${input.label.toLowerCase()}...`}
                                                                 disabled={dynamicOptionQueries[schema.inputs.indexOf(input)]?.isLoading}
                                                                 className="w-full"
@@ -615,7 +609,7 @@ export const NodeDetailsModal = ({
                                                             <CredentialInput
                                                                 value={formData[input.name]}
                                                                 onChange={(val) => handleChange(input.name, val)}
-                                                                credentialType={input.credential_type || 'generic'}
+                                                                credentialType={(input as any).credential_type || 'generic'}
                                                                 label={input.label}
                                                             />
                                                         ) : input.type === 'json' ? (
@@ -641,6 +635,27 @@ export const NodeDetailsModal = ({
                                                                     placeholder="{}"
                                                                 />
                                                             </div>
+                                                        ) : input.type === 'dateTime' ? (
+                                                            <DateTimeInput
+                                                                value={formData[input.name]}
+                                                                onChange={(val) => handleChange(input.name, val)}
+                                                            />
+                                                        ) : input.type === 'collection' ? (
+                                                            <CollectionInput
+                                                                value={formData[input.name] || input.default || []}
+                                                                onChange={(val) => handleChange(input.name, val)}
+                                                                placeholder={input.placeholder}
+                                                            />
+                                                        ) : input.type === 'fixedCollection' ? (
+                                                            <FixedCollectionInput
+                                                                value={formData[input.name] || input.default || []}
+                                                                onChange={(val) => handleChange(input.name, val)}
+                                                                schema={{
+                                                                    displayName: input.label,
+                                                                    name: input.name,
+                                                                    values: input.options as any[] || []
+                                                                }}
+                                                            />
                                                         ) : (
                                                             <input
                                                                 className="w-full h-10 px-4 bg-muted/20 border border-border rounded-md text-xs focus:ring-1 focus:ring-primary/50 outline-none transition-all placeholder:text-muted-foreground/20"

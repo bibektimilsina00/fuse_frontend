@@ -20,7 +20,7 @@ import {
     Filter,
     Calendar,
     Key,
-    Puzzle,
+    Braces,
     Database,
     Shield,
     Edit2,
@@ -41,6 +41,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/DropdownMenu'
+import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
 import { AICreateDialog } from '@/components/ai/AICreateDialog'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -471,7 +473,7 @@ function VariablesTabContent({ searchQuery }: { searchQuery: string }) {
         return (
             <div className="empty-state">
                 <div className="empty-state-icon">
-                    <Puzzle className="h-8 w-8 text-muted-foreground" />
+                    <Braces className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <h3 className="text-lg font-medium mb-2">No variables yet</h3>
                 <p className="text-muted-foreground text-sm mb-6 max-w-sm">
@@ -526,17 +528,47 @@ function VariablesTabContent({ searchQuery }: { searchQuery: string }) {
 // ============================================================================
 function DataTablesTabContent() {
     return (
-        <div className="empty-state">
-            <div className="empty-state-icon">
-                <Database className="h-8 w-8 text-muted-foreground" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+                { name: 'User Transactions', rows: '12.4k', size: '2.4 MB', updated: '2h ago' },
+                { name: 'Marketing Leads', rows: '3.2k', size: '840 KB', updated: '1d ago' },
+            ].map((table, i) => (
+                <Card key={i} className="p-6 border-border hover:border-primary/30 transition-all cursor-pointer group">
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            <Database className="h-6 w-6" />
+                        </div>
+                        <Badge variant="outline" className="text-[10px] uppercase font-bold text-muted-foreground/60">
+                            {table.updated}
+                        </Badge>
+                    </div>
+                    <h3 className="font-bold tracking-tight mb-1">{table.name}</h3>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                            <Database className="h-3 w-3" />
+                            {table.rows} rows
+                        </span>
+                        <span>{table.size}</span>
+                    </div>
+                    <div className="mt-6 pt-6 border-t border-border flex justify-end">
+                        <Link href="/datatables">
+                            <Button variant="ghost" size="sm" className="text-xs h-8 gap-2">
+                                View Table <ChevronRight className="h-3 w-3 text-primary" />
+                            </Button>
+                        </Link>
+                    </div>
+                </Card>
+            ))}
+
+            <div className="p-6 border-dashed border-2 border-border bg-muted/5 rounded-2xl flex flex-col items-center justify-center text-center gap-4 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => { }}>
+                <div className="h-12 w-12 rounded-full border-2 border-dashed border-border flex items-center justify-center">
+                    <Plus className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                    <h4 className="text-sm font-bold">New Table</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Create a new structured storage</p>
+                </div>
             </div>
-            <h3 className="text-lg font-medium mb-2">Data Tables</h3>
-            <p className="text-muted-foreground text-sm mb-6 max-w-sm">
-                Store and manage structured data for your workflows. Coming soon!
-            </p>
-            <span className="text-xs font-medium px-3 py-1.5 rounded-full bg-primary/10 text-primary">
-                Coming Soon
-            </span>
         </div>
     )
 }

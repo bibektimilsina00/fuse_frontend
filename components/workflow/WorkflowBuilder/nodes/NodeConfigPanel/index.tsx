@@ -8,34 +8,12 @@ import { Button } from '@/components/ui/Button'
 import { CredentialInput } from './CredentialInput'
 import { CodeEditor } from './CodeEditor'
 import { workflowApi } from '@/services/api/workflows'
-
-interface NodeInput {
-    name: string
-    type: string
-    label: string
-    required?: boolean
-    default?: any
-    options?: { label: string; value: string }[]
-    description?: string
-    credential_type?: string
-    dynamic_options?: string
-    dynamic_dependencies?: string[]
-}
-
-interface NodeSchema {
-    name: string
-    label: string
-    type: string
-    icon: string
-    description: string
-    inputs: NodeInput[]
-    outputs: any[]
-    category: string
-}
+import { NodeInputV2, NodeManifestV2 } from '@/types/workflow'
+import { useNodeDisplayLogic } from '@/hooks/useNodeDisplayLogic'
 
 interface NodeConfigPanelProps {
     node: any
-    schema: NodeSchema
+    schema: NodeManifestV2 // Use V2 Type
     onClose: () => void
     onUpdate: (nodeId: string, data: any) => void
     onExecute?: (nodeId: string, config?: any) => void
@@ -114,6 +92,9 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
         setSettings(node.data.settings || {})
     }, [node])
 
+    // Use our new hook to determine visible inputs!
+    const visibleInputs = useNodeDisplayLogic(schema?.inputs || [], formData)
+
     const handleSettingsChange = (name: string, value: any) => {
         const newSettings = { ...settings, [name]: value }
         setSettings(newSettings)
@@ -135,9 +116,13 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
     // Dynamic Options Queries using React Query
     const dynamicOptionQueries = useQueries({
         queries: schema.inputs.map(input => {
-            const hasDynamic = (input as any).dynamic_options;
-            const method = (input as any).dynamic_options;
-            const deps = (input as any).dynamic_dependencies || [];
+            const typeOpts = input.typeOptions || {};
+            const method = typeOpts.loadOptionsMethod;
+            // @ts-ignore compatibility with old schema or new typeOptions
+            const hasDynamic = !!method || !!(input as any).dynamic_options;
+
+            // @ts-ignore
+            const deps = typeOpts.loadOptionsDependsOn || (input as any).dynamic_dependencies || [];
 
             // Calculate current dependency values
             const dependencyValues: Record<string, any> = {};
@@ -146,12 +131,18 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             // Check if enabled (has meaningful dependencies)
             const enabled = hasDynamic && Object.values(dependencyValues).some(v => v !== undefined && v !== '' && v !== null);
 
+            // Use name or deprecated dynamic_options (method name)
+            // @ts-ignore
+            const methodName = method || (input as any).dynamic_options;
+
             return {
-                queryKey: ['node-options', schema.name, input.name, dependencyValues],
+                // @ts-ignore
+                queryKey: ['node-options', schema.name || schema.id, input.name, dependencyValues],
                 queryFn: async () => {
                     const res = await workflowApi.getNodeOptions(
-                        schema.name,
-                        method,
+                        // @ts-ignore
+                        schema.name || schema.id,
+                        methodName,
                         dependencyValues
                     );
                     return res;
@@ -199,7 +190,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
                         <div className="flex items-center gap-1.5 overflow-hidden">
                             <span className="text-[10px] text-primary/70 font-bold uppercase tracking-[0.15em] shrink-0">{schema.category}</span>
                             <span className="text-[10px] text-muted-foreground/40">•</span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">{schema.label}</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">{schema.displayName || schema.id}</span>
                         </div>
                     </div>
                 </div>
@@ -272,7 +263,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
                             ) : (
                                 <div className="space-y-8">
                                     {/* Specialized UI for Schedule */}
-                                    {schema.name === 'schedule.cron' && (
+                                    {schema.id === 'schedule.cron' && (
                                         <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/5 to-transparent border border-primary/10 space-y-4">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
@@ -311,9 +302,9 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
                                         </div>
                                     )}
 
-                                    {/* Generic Inputs */}
-                                    {schema.inputs
-                                        .filter(input => schema.name !== 'schedule.cron' || (input.name !== 'interval' && input.name !== 'frequency'))
+                                    {/* Generic Inputs - Use visibleInputs! */}
+                                    {visibleInputs
+                                        .filter(input => schema.id !== 'schedule.cron' || (input.name !== 'interval' && input.name !== 'frequency'))
                                         .map((input) => (
                                             <div key={input.name}>
                                                 {input.type === 'messages' ? (
@@ -392,7 +383,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
                                                         <CredentialInput
                                                             value={formData[input.name]}
                                                             onChange={(val) => handleChange(input.name, val)}
-                                                            credentialType={input.credential_type || 'generic'}
+                                                            credentialType={(input as any).credential_type || 'generic'}
                                                             label={input.label}
                                                         />
                                                     </div>
@@ -410,7 +401,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
                                                                     value={formData[input.name] || ''}
                                                                     onChange={(e) => handleChange(input.name, e.target.value)}
                                                                     className="w-full px-4 py-2.5 bg-background/60 hover:bg-background/80 border border-border/60 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm placeholder:text-muted-foreground/30"
-                                                                    placeholder={input.default || `Enter ${input.label.toLowerCase()}...`}
+                                                                    placeholder={(input.default as string) || `Enter ${input.label.toLowerCase()}...`}
                                                                 />
                                                             </div>
                                                         )}
@@ -420,7 +411,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
                                                                     value={formData[input.name] || ''}
                                                                     onChange={(e) => handleChange(input.name, e.target.value)}
                                                                     className="w-full px-4 py-3 bg-background/60 hover:bg-background/80 border border-border/60 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm placeholder:text-muted-foreground/30 min-h-[120px] resize-y custom-scrollbar"
-                                                                    placeholder={input.default || `Enter ${input.label.toLowerCase()}...`}
+                                                                    placeholder={(input.default as string) || `Enter ${input.label.toLowerCase()}...`}
                                                                 />
                                                             </div>
                                                         )}
@@ -483,7 +474,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
                                                                 <CodeEditor
                                                                     value={formData[input.name] || input.default || ''}
                                                                     onChange={(val) => handleChange(input.name, val)}
-                                                                    language={schema.name.includes('python') ? 'python' : 'javascript'}
+                                                                    language={schema.id.includes('python') ? 'python' : 'javascript'}
                                                                     height="380px"
                                                                     nodeId={node.id}
                                                                 />

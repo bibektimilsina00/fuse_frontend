@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Puzzle,
+    Braces,
     Plus,
     Search,
     MoreHorizontal,
@@ -12,9 +12,19 @@ import {
     Copy,
     Eye,
     EyeOff,
-    Lock
+    Lock,
+    RotateCcw,
+    Zap
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
+} from '@/components/ui/DropdownMenu'
+import { formatDistanceToNow } from 'date-fns'
 import { cn } from '@/lib/utils'
 
 interface Variable {
@@ -60,46 +70,56 @@ const mockVariables: Variable[] = [
 
 function VariableRow({ variable, onDelete }: { variable: Variable; onDelete: (id: string) => void }) {
     const [showValue, setShowValue] = useState(variable.type !== 'secret')
-    const [showMenu, setShowMenu] = useState(false)
 
     const typeColors: Record<string, string> = {
-        string: 'bg-blue-500/20 text-blue-400',
-        number: 'bg-purple-500/20 text-purple-400',
-        boolean: 'bg-green-500/20 text-green-400',
-        secret: 'bg-red-500/20 text-red-400'
+        string: 'border-blue-500/20 text-blue-400 bg-blue-500/5',
+        number: 'border-purple-500/20 text-purple-400 bg-purple-500/5',
+        boolean: 'border-green-500/20 text-green-400 bg-green-500/5',
+        secret: 'border-red-500/20 text-red-400 bg-red-500/5'
     }
 
     return (
         <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="group bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-all"
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="group relative bg-card/40 backdrop-blur-md border border-border/40 hover:border-primary/50 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-300"
         >
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        <code className="text-sm font-mono font-semibold text-primary bg-primary/10 px-2 py-1 rounded">
-                            {variable.key}
-                        </code>
-                        <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded", typeColors[variable.type])}>
-                            {variable.type.toUpperCase()}
-                        </span>
-                    </div>
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className={cn(
+                    "h-10 w-10 shrink-0 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-all duration-500",
+                    variable.type === 'secret' && "text-amber-500/50 bg-amber-500/5 text-amber-500"
+                )}>
+                    {variable.type === 'secret' ? <Lock className="h-5 w-5" /> : <Braces className="h-5 w-5" />}
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5">
-                        {variable.type === 'secret' && (
-                            <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                        <code className="text-sm font-mono text-foreground">
-                            {showValue ? variable.value : '••••••••'}
+                <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-3">
+                        <code className="text-sm font-mono font-bold text-foreground group-hover:text-primary transition-colors">
+                            {variable.key}
                         </code>
+                        <Badge variant="outline" className={cn("h-4 px-1.5 text-[8px] font-bold uppercase", typeColors[variable.type])}>
+                            {variable.type}
+                        </Badge>
+                    </div>
+                    {variable.description && (
+                        <p className="text-[11px] text-muted-foreground/60 truncate max-w-md">
+                            {variable.description}
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            <div className="flex items-center gap-3 self-end md:self-auto">
+                <div className="flex items-center gap-2 bg-muted/30 p-1.5 px-3 rounded-xl border border-border/10">
+                    <code className="text-[11px] font-mono font-medium text-muted-foreground/80 min-w-[100px]">
+                        {showValue ? variable.value : '••••••••••••'}
+                    </code>
+                    <div className="flex items-center gap-0.5">
                         {variable.type === 'secret' && (
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6"
+                                className="h-7 w-7 text-muted-foreground/40 hover:text-primary transition-colors"
                                 onClick={() => setShowValue(!showValue)}
                             >
                                 {showValue ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
@@ -108,47 +128,35 @@ function VariableRow({ variable, onDelete }: { variable: Variable; onDelete: (id
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6"
+                            className="h-7 w-7 text-muted-foreground/40 hover:text-primary transition-colors"
                             onClick={() => navigator.clipboard.writeText(variable.value)}
                         >
                             <Copy className="h-3.5 w-3.5" />
                         </Button>
                     </div>
+                </div>
 
-                    <div className="relative">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setShowMenu(!showMenu)}
-                        >
+                <div className="h-4 w-px bg-border/20 mx-1" />
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all">
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
-                        {showMenu && (
-                            <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-10 py-1 min-w-[140px]">
-                                <button className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors">
-                                    <Edit2 className="h-4 w-4" />
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        onDelete(variable.id)
-                                        setShowMenu(false)
-                                    }}
-                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                    Delete
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52 p-2 rounded-2xl border-white/5 shadow-2xl backdrop-blur-xl">
+                        <DropdownMenuItem className="rounded-xl gap-3 py-2.5 px-3 font-semibold text-sm transition-all focus:bg-primary/10 focus:text-primary">
+                            <Edit2 className="h-4 w-4" /> Edit Variable
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => onDelete(variable.id)}
+                            className="rounded-xl gap-3 py-2.5 px-3 font-semibold text-sm text-destructive focus:bg-destructive/10 focus:text-destructive"
+                        >
+                            <Trash2 className="h-4 w-4" /> Delete Variable
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
-
-            {variable.description && (
-                <p className="text-sm text-muted-foreground mt-3 pl-0">{variable.description}</p>
-            )}
         </motion.div>
     )
 }
@@ -190,7 +198,7 @@ function CreateVariableModal({ isOpen, onClose, onCreate }: {
                             type="text"
                             value={key}
                             onChange={e => setKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '_'))}
-                            className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none font-mono"
+                            className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none font-mono text-sm"
                             placeholder="MY_VARIABLE"
                         />
                     </div>
@@ -199,7 +207,7 @@ function CreateVariableModal({ isOpen, onClose, onCreate }: {
                         <select
                             value={type}
                             onChange={e => setType(e.target.value as Variable['type'])}
-                            className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                            className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none text-sm"
                         >
                             <option value="string">String</option>
                             <option value="number">Number</option>
@@ -213,7 +221,7 @@ function CreateVariableModal({ isOpen, onClose, onCreate }: {
                             type={type === 'secret' ? 'password' : 'text'}
                             value={value}
                             onChange={e => setValue(e.target.value)}
-                            className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none font-mono"
+                            className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none font-mono text-sm"
                             placeholder="Enter value..."
                         />
                     </div>
@@ -223,7 +231,7 @@ function CreateVariableModal({ isOpen, onClose, onCreate }: {
                             type="text"
                             value={description}
                             onChange={e => setDescription(e.target.value)}
-                            className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                            className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none text-sm"
                             placeholder="What is this variable for?"
                         />
                     </div>
@@ -263,74 +271,85 @@ export default function VariablesPage() {
     }
 
     return (
-        <div className="space-y-8 max-w-[1600px] mx-auto">
-            {/* Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">Variables</h1>
-                    <p className="text-muted-foreground text-sm mt-1">
-                        Define reusable variables for your workflows
+        <div className="space-y-8 max-w-[1400px] mx-auto pb-20">
+            {/* Header Area */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
+                <div className="space-y-1.5">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                            <Braces className="h-5 w-5 text-primary" />
+                        </div>
+                        <h1 className="text-3xl font-black tracking-tight text-foreground">Global Variables</h1>
+                    </div>
+                    <p className="text-muted-foreground/70 text-sm font-medium pl-1">
+                        Securely store and manage reusable variables for all your automated workflows.
                     </p>
                 </div>
-                <Button onClick={() => setShowCreateModal(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Variable
+                <Button onClick={() => setShowCreateModal(true)} className="rounded-xl px-5 h-10 font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95 gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Variable
                 </Button>
             </div>
 
-            {/* Search */}
-            <div className="flex items-center gap-3">
-                <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            {/* Toolbar Area */}
+            <div className="flex flex-col lg:flex-row lg:items-center gap-4 bg-muted/10 p-2 rounded-[2rem] border border-border/20 backdrop-blur-sm">
+                <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
                     <input
                         type="text"
-                        placeholder="Search variables..."
+                        placeholder="Filter variables by key or purpose..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
-                        className="search-input w-full !pl-9"
+                        className="w-full h-11 pl-11 pr-4 bg-transparent border-none rounded-xl focus:ring-0 transition-all outline-none text-sm font-semibold placeholder:text-muted-foreground/30"
                     />
                 </div>
-            </div>
-
-            {/* Info Banner */}
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
-                <div className="flex items-start gap-3">
-                    <Puzzle className="h-5 w-5 text-primary mt-0.5" />
-                    <div>
-                        <h3 className="font-medium text-sm">Using Variables in Workflows</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            Reference variables in your workflows using <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{'{{$vars.VARIABLE_NAME}}'}</code>
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Variables List */}
-            {filteredVariables.length === 0 ? (
-                <div className="empty-state">
-                    <div className="empty-state-icon">
-                        <Puzzle className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-medium mb-2">No variables yet</h3>
-                    <p className="text-muted-foreground text-sm mb-6 max-w-sm">
-                        Create reusable variables to use across all your workflows
+                <div className="h-6 w-px bg-border/20 hidden lg:block" />
+                <div className="px-4 py-2 bg-primary/5 rounded-2xl flex items-center gap-3 border border-primary/10">
+                    <Zap className="h-4 w-4 text-primary" />
+                    <p className="text-[10px] text-primary font-bold uppercase tracking-wider">
+                        Usage: <code className="bg-primary/10 px-1 rounded">{'{{$vars.KEY}}'}</code>
                     </p>
-                    <Button onClick={() => setShowCreateModal(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Variable
-                    </Button>
                 </div>
-            ) : (
-                <div className="space-y-3">
-                    {filteredVariables.map(variable => (
-                        <VariableRow
-                            key={variable.id}
-                            variable={variable}
-                            onDelete={handleDelete}
-                        />
-                    ))}
-                </div>
-            )}
+            </div>
+
+            {/* Variables Content */}
+            <div className="relative space-y-3">
+                <AnimatePresence mode="popLayout">
+                    {filteredVariables.length === 0 ? (
+                        <motion.div
+                            key="empty"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-6 bg-muted/5 rounded-[2.5rem] border border-dashed border-border/50"
+                        >
+                            <div className="h-20 w-20 bg-primary/5 rounded-[2.5rem] flex items-center justify-center mx-auto ring-1 ring-primary/10">
+                                <Braces className="h-10 w-10 text-primary/20" />
+                            </div>
+                            <div className="space-y-2">
+                                <h2 className="text-2xl font-bold tracking-tight">No variables found</h2>
+                                <p className="text-muted-foreground max-w-sm mx-auto text-sm">
+                                    {searchQuery ? "Try refining your search terms or create a new variable." : "Start by creating a global variable that you can use across all your workflows."}
+                                </p>
+                            </div>
+                            {!searchQuery && (
+                                <Button onClick={() => setShowCreateModal(true)} className="gap-2 px-8 rounded-xl h-11 font-bold">
+                                    <Plus className="h-4 w-4" />
+                                    Define Your First Variable
+                                </Button>
+                            )}
+                        </motion.div>
+                    ) : (
+                        filteredVariables.map((variable) => (
+                            <VariableRow
+                                key={variable.id}
+                                variable={variable}
+                                onDelete={handleDelete}
+                            />
+                        ))
+                    )}
+                </AnimatePresence>
+            </div>
 
             <CreateVariableModal
                 isOpen={showCreateModal}
