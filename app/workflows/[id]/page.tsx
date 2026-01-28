@@ -1,7 +1,7 @@
 import ClientWrapper from './ClientWrapper'
 
-// For static export - enable dynamic params to allow non-pre-generated UUID routes
-export const dynamicParams = true
+// For static export - disable dynamic params to allow non-pre-generated UUID routes
+export const dynamicParams = false
 
 // Required for static export - returns one placeholder path
 // Client-side navigation will work for any ID
