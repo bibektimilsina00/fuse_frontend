@@ -11,6 +11,7 @@ interface QuickAddButtonProps {
     color?: string
     style?: React.CSSProperties
     connectionType?: 'source' | 'target'
+    filterType?: string
 }
 
 export function QuickAddButton({
@@ -19,7 +20,8 @@ export function QuickAddButton({
     position = 'right',
     color = '#3b82f6',
     style,
-    connectionType = 'source'
+    connectionType = 'source',
+    filterType
 }: QuickAddButtonProps) {
     const { getNode } = useReactFlow()
     const edges = useEdges()
@@ -72,7 +74,8 @@ export function QuickAddButton({
                 target: connectionType === 'target' ? nodeId : undefined,
                 targetHandle: connectionType === 'target' ? handleId : undefined,
                 x: node.position.x + offsetX,
-                y: node.position.y + offsetY
+                y: node.position.y + offsetY,
+                filterType
             }
         })
         window.dispatchEvent(event)

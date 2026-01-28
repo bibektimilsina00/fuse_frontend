@@ -17,6 +17,7 @@ import { Position, NodeProps, useReactFlow } from 'reactflow'
 import { ChevronDown } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { motion, AnimatePresence } from 'framer-motion'
+import { IconRenderer } from '../../utils/iconMap'
 import { cn } from '@/lib/utils'
 import { QuickAddButton } from '../QuickAddButton'
 import { validateNodeConfig } from '../../utils/nodeValidation'
@@ -45,7 +46,8 @@ export interface BaseActionNodeData {
 }
 
 export interface ActionNodeConfig {
-    icon: React.ComponentType<any>
+    icon?: string
+    icon_svg?: string
     color: string
     detailsContent?: (data: BaseActionNodeData) => ReactNode
 }
@@ -86,8 +88,6 @@ export const BaseActionNode = memo((props: BaseActionNodeProps) => {
             nodeTypeDefinition
         )
     }, [data.node_name, data.config, data.spec, nodeTypeDefinition])
-
-    const Icon = config.icon
 
     // Handlers
     const handleExecute = async () => {
@@ -144,9 +144,14 @@ export const BaseActionNode = memo((props: BaseActionNodeProps) => {
                         <RunningBorder color={config.color} borderRadius="26px" isRunning={isRunning} />
 
                         {/* Icon Container */}
-                        <div className="w-full h-full flex items-center justify-center relative z-10">
+                        <div className="w-full h-full flex items-center justify-center relative z-10 p-5">
                             <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundColor: config.color }} />
-                            <Icon className="h-9 w-9 relative z-10" style={{ color: config.color }} />
+                            <IconRenderer
+                                icon={config.icon}
+                                icon_svg={config.icon_svg}
+                                className="h-full w-full relative z-10"
+                                style={{ color: config.color }}
+                            />
                         </div>
 
                         {/* Status Indicator */}

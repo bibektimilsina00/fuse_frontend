@@ -8,48 +8,13 @@ import {
     Shuffle, Sparkles
 } from 'lucide-react'
 import { BaseActionNode, BaseActionNodeData, ActionNodeConfig } from './BaseActionNode'
-import { LogoGoogleSheets, LogoWhatsApp } from '../../icons/BrandIcons'
-
-const iconMap: Record<string, any> = {
-    Zap,
-    Settings,
-    Bot,
-    MessageSquare,
-    Database,
-    Globe,
-    Code,
-    Brain,
-    Mail,
-    Send,
-    Share2,
-    FileText,
-    Download,
-    Upload,
-    Trash2,
-    Edit
-}
+// Local icons removed in favor of manifest-driven icons
 
 export const GenericActionNode = memo((props: NodeProps<BaseActionNodeData>) => {
     const { data } = props
 
-    const getIcon = () => {
-        if (data.icon_svg) {
-            return ({ className, style }: { className?: string, style?: any }) => (
-                <div
-                    className={`${className} flex items-center justify-center [&>svg]:w-full [&>svg]:h-full`}
-                    style={style}
-                    dangerouslySetInnerHTML={{ __html: data.icon_svg! }}
-                />
-            )
-        }
-
-        // STRICT MODE: If no icon_svg is provided, show a "Missing Icon" placeholder
-        return ({ className, style }: { className?: string, style?: any }) => (
-            <div className={`${className} flex items-center justify-center bg-destructive/10 text-destructive rounded-sm`} style={style} title="Missing Icon">
-                <span className="text-[8px] font-bold">?</span>
-            </div>
-        )
-    }
+    // Color is still somewhat derived from name for visual themes, 
+    // but icons are strictly from manifest now.
 
     const getColor = () => {
         const nodeName = data.node_name?.toLowerCase() || ''
@@ -64,7 +29,8 @@ export const GenericActionNode = memo((props: NodeProps<BaseActionNodeData>) => 
     }
 
     const config: ActionNodeConfig = {
-        icon: getIcon(),
+        icon: data.icon,
+        icon_svg: data.icon_svg,
         color: getColor(),
         detailsContent: (data) => {
             if (!data.config || Object.keys(data.config).length === 0) return null

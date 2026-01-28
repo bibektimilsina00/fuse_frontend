@@ -1,11 +1,11 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, Search, ChevronRight, Zap, Globe, Clock, MessageSquare, Terminal, Webhook, FileText, MousePointerClick, LayoutGrid, ArrowLeft, Bot, GitBranch } from 'lucide-react'
+import { Plus, X, Search, ChevronRight, Zap, Globe, Clock, MessageSquare, Terminal, Webhook, FileText, MousePointerClick, LayoutGrid, ArrowLeft, Bot, GitBranch, Database, Cpu, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { memo, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { getNodeIcon } from './utils/iconMap'
+import { IconRenderer } from './utils/iconMap'
 import { NodeTypeDefinition } from '@/types'
 
 interface NodePanelProps {
@@ -16,84 +16,10 @@ interface NodePanelProps {
     availableNodeTypes: NodeTypeDefinition[]
     onAddNode: (nodeType: NodeTypeDefinition) => void
     isWorkflowEmpty?: boolean
+    filterType?: 'trigger' | 'action' | 'ai_tool' | 'ai_memory' | 'ai_chat_model'
 }
 
-const TRIGGER_GROUPS = [
-    {
-        id: 'manual',
-        label: 'Trigger manually',
-        description: 'Runs the flow on clicking a button. Good for testing.',
-        icon: MousePointerClick,
-        nodeType: 'manual.trigger'
-    },
-    {
-        id: 'apps',
-        label: 'On app event',
-        description: 'Runs the flow when something happens in an app like WhatsApp, Email, etc.',
-        icon: LayoutGrid,
-        hasChildren: true
-    },
-    {
-        id: 'schedule',
-        label: 'On a schedule',
-        description: 'Runs the flow every day, hour, or custom interval',
-        icon: Clock,
-        nodeType: 'schedule.cron'
-    },
-    {
-        id: 'webhook',
-        label: 'On webhook call',
-        description: 'Runs the flow on receiving an HTTP request',
-        icon: Webhook,
-        nodeType: 'webhook.receive'
-    },
-    {
-        id: 'form',
-        label: 'On form submission',
-        description: 'Runs on form submissions',
-        icon: FileText,
-        nodeType: 'form.submit'
-    }
-]
-
-const ACTION_GROUPS = [
-    {
-        id: 'ai',
-        label: 'AI',
-        description: 'Build autonomous agents, summarize or search documents, etc.',
-        icon: Bot
-    },
-    {
-        id: 'app_action',
-        label: 'Action in an app',
-        description: 'Do something in an app or service like Google Sheets, Telegram or Notion',
-        icon: Globe
-    },
-    {
-        id: 'transformation',
-        label: 'Data transformation',
-        description: 'Manipulate, filter or convert data',
-        icon: FileText
-    },
-    {
-        id: 'flow',
-        label: 'Flow',
-        description: 'Branch, merge or loop the flow, etc.',
-        icon: GitBranch
-    },
-    {
-        id: 'core',
-        label: 'Core',
-        description: 'Run code, make HTTP requests, set webhooks, etc.',
-        icon: Terminal
-    },
-    {
-        id: 'trigger',
-        label: 'Add another trigger',
-        description: 'Triggers start your workflow. Workflows can have multiple triggers.',
-        icon: Zap
-    }
-]
+type PanelView = 'main' | 'app_triggers' | 'actions' | 'ai' | 'utilities' | 'logic'
 
 export const NodePanel = memo(({
     isOpen,
@@ -102,319 +28,276 @@ export const NodePanel = memo(({
     setSearchQuery,
     availableNodeTypes,
     onAddNode,
-    isWorkflowEmpty = false
+    isWorkflowEmpty = false,
+    filterType
 }: NodePanelProps) => {
     const [mounted, setMounted] = useState(false)
-    const [view, setView] = useState<string>('main')
+    const [view, setView] = useState<PanelView>('main')
 
     useEffect(() => {
         setMounted(true)
     }, [])
 
+    // Reset view when opening
+    useEffect(() => {
+        if (isOpen) {
+            setView('main')
+        }
+    }, [isOpen])
+
     if (!mounted) return null
 
     const getFilteredNodes = () => {
-        // Workflow Empty - Trigger Filtering
+        const nodes = availableNodeTypes || []
+
+        // 1. If searching, return everything that matches
+        if (searchQuery) {
+            return nodes.filter(n =>
+                (n.label || (n as any).displayName)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (n.name || n.id)?.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+        }
+
+        // 2. Specialized Filtering (e.g. from Agent + button)
+        if (filterType) {
+            switch (filterType) {
+                case 'ai_tool': return nodes.filter(n => n.category?.toUpperCase() === 'AI_TOOL')
+                case 'ai_memory': return nodes.filter(n => n.category?.toUpperCase() === 'AI_MEMORY')
+                case 'ai_chat_model': return nodes.filter(n => n.category?.toUpperCase() === 'AI_CHAT_MODEL')
+                case 'trigger': return nodes.filter(n => n.type === 'trigger')
+                case 'action': return nodes.filter(n => n.type === 'action')
+                default: return nodes
+            }
+        }
+
+        // 3. Workflow Empty - show triggers only
         if (isWorkflowEmpty) {
-            const triggers = (availableNodeTypes || []).filter(n => n.type === 'trigger');
-
-            if (view === 'apps') {
-                return triggers.filter(n => n.trigger_group === 'app');
+            if (view === 'app_triggers') {
+                return nodes.filter(n => n.type === 'trigger' && n.service !== 'core')
             }
-
-            if (view === 'other') {
-                const definedGroups = ['manual', 'schedule', 'webhook', 'form', 'app'];
-                return triggers.filter(n =>
-                    !n.trigger_group ||
-                    n.trigger_group === 'other' ||
-                    !definedGroups.includes(n.trigger_group)
-                );
-            }
+            return []
         }
 
-        // Non-Empty Workflow - Action Filtering
-        if (!isWorkflowEmpty) {
-            const allNodes = availableNodeTypes || [];
-
-            switch (view) {
-                case 'ai':
-                    return allNodes.filter(n => n.name.startsWith('ai.') || n.type === 'ai');
-                case 'transformation':
-                    return allNodes.filter(n => n.name.startsWith('data.'));
-                case 'flow':
-                    return allNodes.filter(n => n.type === 'logic' || n.name.startsWith('condition.') || n.name.startsWith('execution.'));
-                case 'core':
-                    return allNodes.filter(n => ['code.python', 'code.javascript', 'http.request'].includes(n.name));
-                case 'trigger':
-                    return allNodes.filter(n => n.type === 'trigger');
-                case 'app_action':
-                    // Filter action nodes that are not in the other categories
-                    return allNodes.filter(n =>
-                        n.type === 'action' &&
-                        !n.name.startsWith('ai.') &&
-                        !n.name.startsWith('data.') &&
-                        !['code.python', 'code.javascript', 'http.request'].includes(n.name)
-                    );
-            }
+        // 4. Regular Categorized Views
+        switch (view) {
+            case 'ai':
+                return nodes.filter(n => ['AI', 'AI_TOOL', 'AI_MEMORY', 'AI_CHAT_MODEL'].includes(n.category?.toUpperCase()))
+            case 'actions':
+                return nodes.filter(n => n.type === 'action' && n.category === 'ACTION' && n.service !== 'core')
+            case 'utilities':
+                return nodes.filter(n => ['UTILITY', 'DATA'].includes(n.category?.toUpperCase()))
+            case 'logic':
+                return nodes.filter(n => ['LOGIC', 'FLOW'].includes(n.category?.toUpperCase()))
+            default:
+                return []
         }
+    }
 
-        return [];
-    };
+    const filteredNodes = getFilteredNodes()
+    const isShowingList = searchQuery || view !== 'main' || filterType
 
     return createPortal(
         <AnimatePresence>
             {isOpen && (
-                <>
-                    {/* Backdrop for mobile or if needed, though usually sidebar is non-modal */}
-                    {/* <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
-                    /> */}
-
-                    <motion.div
-                        initial={{ x: isWorkflowEmpty ? 500 : 450, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: isWorkflowEmpty ? 500 : 450, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-                        className={`fixed right-0 top-0 bottom-0 ${isWorkflowEmpty ? 'w-[500px]' : 'w-[450px]'} bg-card border-l border-border shadow-2xl overflow-hidden flex flex-col z-[100]`}
-                    >
-                        <div className="p-5 border-b border-border bg-muted/20">
-                            <div className="flex items-start justify-between mb-4">
-                                <div>
-                                    <h3 className="font-bold text-lg tracking-tight">
-                                        {isWorkflowEmpty
-                                            ? (view === 'main' ? 'What triggers this workflow?' : view === 'apps' ? 'App Triggers' : 'Other Triggers')
-                                            : (view === 'main' ? 'What happens next?' : ACTION_GROUPS.find(g => g.id === view)?.label || 'Select Node')
-                                        }
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground mt-1 leading-normal">
-                                        {isWorkflowEmpty
-                                            ? 'A trigger is a step that starts your workflow'
-                                            : 'Select a step to add to your flow'}
-                                    </p>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={onClose}
-                                    className="rounded-lg hover:bg-destructive/10 hover:text-destructive -mr-2 -mt-2"
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
+                <motion.div
+                    initial={{ x: 450, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: 450, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="fixed right-0 top-0 bottom-0 w-[450px] bg-card border-l border-border shadow-2xl z-[100] flex flex-col overflow-hidden"
+                >
+                    {/* Header */}
+                    <div className="p-6 border-b border-border space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                {view !== 'main' && !filterType && (
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setView('main')}>
+                                        <ArrowLeft className="h-4 w-4" />
+                                    </Button>
+                                )}
+                                <h3 className="text-xl font-bold tracking-tight">
+                                    {filterType ? `Select ${filterType.replace('ai_', '').replace('_', ' ')}` :
+                                        isWorkflowEmpty ? 'How does it start?' : 'Add a step'}
+                                </h3>
                             </div>
-
-                            <div className="relative group">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                                <input
-                                    type="text"
-                                    autoFocus
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder={isWorkflowEmpty ? "Search triggers..." : "Search nodes..."}
-                                    className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                                />
-                            </div>
+                            <Button variant="ghost" size="icon" onClick={onClose}>
+                                <X className="h-4 w-4" />
+                            </Button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto custom-scrollbar">
-                            <div className="p-4 space-y-6">
-                                {/* ========================================================= */}
-                                {/* EMPTY STATE RENDER LOGIC */}
-                                {/* ========================================================= */}
-                                {isWorkflowEmpty ? (
-                                    <div className="space-y-4">
-                                        {view === 'main' ? (
-                                            <>
-                                                {TRIGGER_GROUPS.map((group) => (
-                                                    <button
-                                                        key={group.id}
-                                                        className="w-full flex items-start gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-muted/50 transition-all text-left group"
-                                                        onClick={() => {
-                                                            if (group.hasChildren) {
-                                                                setView('apps')
-                                                            } else if (group.nodeType) {
-                                                                const node = availableNodeTypes.find(n => n.name === group.nodeType)
-                                                                if (node) {
-                                                                    onAddNode(node)
-                                                                    setSearchQuery('')
-                                                                }
-                                                            }
-                                                        }}
-                                                    >
-                                                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                                            <group.icon className="h-5 w-5 text-primary" />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0 pt-0.5">
-                                                            <div className="font-medium text-foreground flex items-center justify-between gap-2">
-                                                                {group.label}
-                                                                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                                                            </div>
-                                                            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
-                                                                {group.description}
-                                                            </p>
-                                                        </div>
-                                                    </button>
-                                                ))}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <input
+                                autoFocus
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search all nodes..."
+                                className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                            />
+                        </div>
+                    </div>
 
-                                                {/* Other / Search Fallback */}
-                                                <div className="pt-4 border-t border-border mt-4">
-                                                    <button
-                                                        onClick={() => setView('other')}
-                                                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors text-left group text-muted-foreground hover:text-foreground"
-                                                    >
-                                                        <Terminal className="h-4 w-4 shrink-0" />
-                                                        <div className="flex-1">
-                                                            <span className="text-sm font-medium block">Other ways...</span>
-                                                            <span className="text-xs opacity-70">Browse other triggers</span>
-                                                        </div>
-                                                        <ChevronRight className="h-3 w-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                                                    </button>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            /* Apps / Other Triggers View */
-                                            <div className="space-y-4">
-                                                <button
-                                                    onClick={() => setView('main')}
-                                                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 px-1"
-                                                >
-                                                    <ArrowLeft className="h-4 w-4" />
-                                                    Back to categories
-                                                </button>
-
-                                                {getFilteredNodes()
-                                                    .filter(n =>
-                                                        searchQuery === '' ||
-                                                        n.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                        n.description?.toLowerCase().includes(searchQuery.toLowerCase())
-                                                    )
-                                                    .map((nodeType) => (
-                                                        <button
-                                                            key={nodeType.name}
-                                                            className="w-full flex items-start gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-muted/50 transition-all text-left group"
-                                                            onClick={() => {
-                                                                onAddNode(nodeType)
-                                                                setSearchQuery('')
-                                                            }}
-                                                        >
-                                                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                                                {(() => {
-                                                                    const IconComponent = getNodeIcon(nodeType.name, nodeType.type)
-                                                                    return <IconComponent className="h-5 w-5 text-primary" />
-                                                                })()}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0 pt-0.5">
-                                                                <div className="font-medium text-foreground flex items-center justify-between gap-2">
-                                                                    {nodeType.label}
-                                                                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                                                                </div>
-                                                                <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
-                                                                    {nodeType.description}
-                                                                </p>
-                                                            </div>
-                                                        </button>
-                                                    ))}
-
-                                                {getFilteredNodes().length === 0 && (
-                                                    <div className="text-center py-12 text-muted-foreground">
-                                                        <p>No triggers found in this category.</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    /* ========================================================= */
-                                    /* NORMAL / ACTION STATE RENDER LOGIC */
-                                    /* ========================================================= */
-                                    <div className="space-y-4">
-                                        {view === 'main' ? (
-                                            <>
-                                                {ACTION_GROUPS.map((group) => (
-                                                    <button
-                                                        key={group.id}
-                                                        className="w-full flex items-start gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-muted/50 transition-all text-left group"
-                                                        onClick={() => setView(group.id)}
-                                                    >
-                                                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                                            <group.icon className="h-5 w-5 text-primary" />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0 pt-0.5">
-                                                            <div className="font-medium text-foreground flex items-center justify-between gap-2">
-                                                                {group.label}
-                                                                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                                                            </div>
-                                                            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
-                                                                {group.description}
-                                                            </p>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </>
-                                        ) : (
-                                            /* Filtered Action View */
-                                            <div className="space-y-4">
-                                                <button
-                                                    onClick={() => setView('main')}
-                                                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 px-1"
-                                                >
-                                                    <ArrowLeft className="h-4 w-4" />
-                                                    Back to categories
-                                                </button>
-
-                                                {getFilteredNodes()
-                                                    .filter(n =>
-                                                        searchQuery === '' ||
-                                                        n.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                        n.description?.toLowerCase().includes(searchQuery.toLowerCase())
-                                                    )
-                                                    .map((nodeType) => (
-                                                        <button
-                                                            key={nodeType.name}
-                                                            className="w-full flex items-start gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-muted/50 transition-all text-left group"
-                                                            onClick={() => {
-                                                                onAddNode(nodeType)
-                                                                setSearchQuery('')
-                                                            }}
-                                                        >
-                                                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                                                {(() => {
-                                                                    const IconComponent = getNodeIcon(nodeType.name, nodeType.type)
-                                                                    return <IconComponent className="h-5 w-5 text-primary" />
-                                                                })()}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0 pt-0.5">
-                                                                <div className="font-medium text-foreground flex items-center justify-between gap-2">
-                                                                    {nodeType.label}
-                                                                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                                                                </div>
-                                                                <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
-                                                                    {nodeType.description}
-                                                                </p>
-                                                            </div>
-                                                        </button>
-                                                    ))}
-
-                                                {getFilteredNodes().length === 0 && (
-                                                    <div className="text-center py-12 text-muted-foreground">
-                                                        <p>No nodes found in this category.</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                        {isShowingList ? (
+                            <div className="grid grid-cols-1 gap-3">
+                                {filteredNodes.map(node => (
+                                    <button
+                                        key={node.name}
+                                        onClick={() => {
+                                            onAddNode(node)
+                                            onClose()
+                                        }}
+                                        className="flex items-start gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-accent/50 transition-all text-left group"
+                                    >
+                                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-all p-2 overflow-hidden">
+                                            <IconRenderer
+                                                icon={node.icon}
+                                                icon_svg={node.icon_svg}
+                                                className="h-full w-full text-primary"
+                                                fallback={node.type === 'trigger' ? Zap : Settings}
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-semibold text-foreground tracking-tight">{node.label}</div>
+                                            <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed opacity-80">{node.description}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                                {filteredNodes.length === 0 && (
+                                    <div className="text-center py-12">
+                                        <div className="h-12 w-12 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
+                                            <Search className="h-6 w-6 text-muted-foreground" />
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">No nodes found in this category.</p>
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    </motion.div>
-                </>
+                        ) : (
+                            <div className="space-y-4">
+                                {isWorkflowEmpty ? (
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <CategoryButton
+                                            icon={MousePointerClick}
+                                            title="Trigger manually"
+                                            description="Run the flow manually with a button click"
+                                            onClick={() => {
+                                                const n = availableNodeTypes.find(v => (v.name || v.id) === 'manual.trigger')
+                                                if (n) { onAddNode(n); onClose(); }
+                                            }}
+                                        />
+                                        <CategoryButton
+                                            icon={LayoutGrid}
+                                            title="On app event"
+                                            description="WhatsApp, Slack, Email, and more..."
+                                            onClick={() => setView('app_triggers')}
+                                            hasChevron
+                                        />
+                                        <CategoryButton
+                                            icon={Clock}
+                                            title="On a schedule"
+                                            description="Run every hour, day, or custom interval"
+                                            onClick={() => {
+                                                const n = availableNodeTypes.find(v => (v.name || v.id) === 'schedule.cron')
+                                                if (n) { onAddNode(n); onClose(); }
+                                            }}
+                                        />
+                                        <CategoryButton
+                                            icon={Webhook}
+                                            title="On webhook call"
+                                            description="Run when an HTTP request is received"
+                                            onClick={() => {
+                                                const n = availableNodeTypes.find(v => (v.name || v.id) === 'webhook.receive')
+                                                if (n) { onAddNode(n); onClose(); }
+                                            }}
+                                        />
+                                        <CategoryButton
+                                            icon={Zap}
+                                            title="Other ways"
+                                            description="Misc triggers like Forms or Chatbot"
+                                            onClick={() => {
+                                                const filtered = availableNodeTypes.filter(n => n.type === 'trigger' && !['manual.trigger', 'schedule.cron', 'webhook.receive'].includes(n.name || n.id))
+                                                if (filtered.length > 0) setSearchQuery(' ');
+                                            }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <CategoryButton
+                                            icon={Bot}
+                                            title="AI"
+                                            description="Agents, Models, Memory, and Tools"
+                                            onClick={() => setView('ai')}
+                                            hasChevron
+                                        />
+                                        <CategoryButton
+                                            icon={Globe}
+                                            title="Action in an app"
+                                            description="Sheets, Telegram, Notion, etc."
+                                            onClick={() => setView('actions')}
+                                            hasChevron
+                                        />
+                                        <CategoryButton
+                                            icon={Terminal}
+                                            title="Core & Utilities"
+                                            description="HTTP, Code, Data Transform"
+                                            onClick={() => setView('utilities')}
+                                            hasChevron
+                                        />
+                                        <CategoryButton
+                                            icon={GitBranch}
+                                            title="Logic & Flow"
+                                            description="If/Else, Loops, Switch"
+                                            onClick={() => setView('logic')}
+                                            hasChevron
+                                        />
+                                        <div className="pt-4 mt-4 border-t border-border">
+                                            <CategoryButton
+                                                icon={Zap}
+                                                title="Add another trigger"
+                                                description="Start from multiple entry points"
+                                                onClick={() => {
+                                                    // Use searching empty space as trigger filter hack
+                                                    setSearchQuery('trigger')
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
             )}
         </AnimatePresence>,
         document.body
     )
 })
+
+interface CategoryButtonProps {
+    icon: any
+    title: string
+    description: string
+    onClick: () => void
+    hasChevron?: boolean
+}
+
+const CategoryButton = ({ icon: Icon, title, description, onClick, hasChevron }: CategoryButtonProps) => (
+    <button
+        onClick={onClick}
+        className="w-full flex items-start gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-accent/50 transition-all text-left group"
+    >
+        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-all">
+            <Icon className="h-5 w-5 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0 pr-2">
+            <div className="flex items-center justify-between">
+                <span className="font-semibold text-foreground tracking-tight">{title}</span>
+                {hasChevron && <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed opacity-80">{description}</p>
+        </div>
+    </button>
+)
 
 NodePanel.displayName = 'NodePanel'

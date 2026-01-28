@@ -107,14 +107,20 @@ export interface AIWorkflowResponse {
 }
 
 export interface NodeType {
+    id: string
+    version: number
+    displayName: string
     name: string
     label: string
     type: string
     icon: string
     description: string
-    inputs: NodeTypeInput[]
-    outputs: NodeTypeOutput[]
+    inputs: any[]
+    outputs: any[]
     category: string
+    service?: string
+    connectionType?: 'flow' | 'auxiliary'
+    icon_svg?: string
 }
 
 export interface ExecuteNodeRequest {

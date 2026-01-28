@@ -276,6 +276,7 @@ export interface NodeInputV2 {
 
 export interface NodeManifestV2 {
     id: string
+    name: string
     version: number
     displayName: string
     description: string

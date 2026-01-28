@@ -24,6 +24,7 @@ export { GenericLogicNode, BaseLogicNode } from './logic'
 
 // Base Node for actions, ai, logic
 export { BaseNode } from './BaseNode'
+export { CircularNode } from './core'
 export type { BaseNodeData, BaseNodeProps } from './BaseNode'
 
 // Node Configuration Panel

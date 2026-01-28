@@ -19,7 +19,6 @@ import { Button } from '@/components/ui/Button'
 import { CredentialInput } from './NodeConfigPanel/CredentialInput'
 import { CodeEditor } from './NodeConfigPanel/CodeEditor'
 import { CustomSelect } from './NodeConfigPanel/CustomSelect'
-import { LogoWhatsApp, LogoPython, LogoGoogleSheets } from '../icons/BrandIcons'
 import { workflowApi } from '@/services/api/workflows'
 import type { Node, Edge } from 'reactflow'
 import { NodeInputV2, NodeManifestV2, NodeTypeOutput, BaseNodeData } from '@/types/workflow'
@@ -27,6 +26,7 @@ import { FixedCollectionInput } from './inputs/FixedCollectionInput'
 import { CollectionInput } from './inputs/CollectionInput'
 import { DateTimeInput } from './inputs/DateTimeInput'
 import { useNodeDisplayLogic } from '@/hooks/useNodeDisplayLogic'
+import { getIconByName, IconRenderer } from '../utils/iconMap'
 
 import type { ComponentType } from 'react'
 
@@ -45,45 +45,7 @@ interface NodeDetailsModalProps {
     isDirty?: boolean
 }
 
-const IconMap: Record<string, IconComponent> = {
-    // Triggers
-    'manual.trigger': PlayCircle,
-    'schedule.cron': Timer,
-    'webhook.receive': Webhook,
-    'whatsapp.trigger': LogoWhatsApp,
-    'email.trigger': Inbox,
-    'rss.trigger': Rss,
-
-    // AI
-    'ai.llm': Sparkles,
-    'ai.agent': Bot,
-
-    // Actions
-    'data.set': Edit3,
-    'data.transform': Shuffle,
-    'slack.send': MessageSquare,
-    'whatsapp.send': LogoWhatsApp,
-    'google_sheets.write': LogoGoogleSheets,
-    'google_sheets.read': LogoGoogleSheets,
-    'http.request': Globe,
-    'code.python': LogoPython,
-    'code.javascript': Code,
-    'email.send': Send,
-    'discord.send': Send,
-
-    // Logic
-    'condition.if': Split,
-    'logic.parallel': GitBranch,
-    'logic.merge': GitMerge,
-    'logic.delay': ClockIcon,
-    'logic.loop': RotateCw,
-    'logic.switch': Shuffle,
-    'logic.pause': PauseCircle,
-    'execution.pause': PauseCircle,
-
-    // Utilities
-    'utility.noop': Activity
-}
+// Local IconMap removed in favor of dynamic icon loading from manifest
 
 const DataExplorer: React.FC<{ data: any; mode: 'json' | 'table' | 'schema' }> = ({ data, mode }) => {
     if (!data || Object.keys(data).length === 0) {
@@ -167,8 +129,6 @@ const NavIcon: React.FC<{
     onSelect: (node: any) => void
     direction: string
 }> = ({ node, onSelect, direction }) => {
-    const nodeName = node.data.node_name || ''
-    const IconComponent = IconMap[nodeName] || (node.data.type === 'trigger' ? Zap : Settings)
     return (
         <motion.button
             whileHover={{ scale: 1.1, backgroundColor: 'rgba(var(--primary), 0.1)' }}
@@ -177,7 +137,12 @@ const NavIcon: React.FC<{
             className="h-10 w-10 shrink-0 bg-card border border-border rounded-md flex items-center justify-center shadow-lg hover:border-primary/50 transition-all group relative"
             title={`${direction}: ${node.data.label}`}
         >
-            <IconComponent className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
+            <IconRenderer
+                icon={node.data.spec?.icon || node.data.icon}
+                icon_svg={node.data.spec?.icon_svg || node.data.icon_svg}
+                className="w-4 h-4 text-muted-foreground group-hover:text-primary"
+                fallback={node.data.type === 'trigger' ? Zap : Settings}
+            />
             <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-[8px] font-bold text-popover-foreground rounded-sm border border-border opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[110]">
                 {node.data.label}
             </div>
@@ -398,12 +363,13 @@ export const NodeDetailsModal = ({
                 {/* Header - Simplified */}
                 <header className="h-14 px-6 border-b border-border bg-muted/10 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
-                            {(() => {
-                                const nodeName = node.data.node_name || ''
-                                const IconComp = IconMap[nodeName] || (node.data.type === 'trigger' ? Zap : Settings)
-                                return <IconComp className="w-4 h-4 fill-current" />
-                            })()}
+                        <div className="h-8 w-8 rounded bg-primary/10 text-primary flex items-center justify-center border border-primary/20 p-1.5">
+                            <IconRenderer
+                                icon={schema.icon}
+                                icon_svg={schema.icon_svg}
+                                className="w-full h-full fill-current"
+                                fallback={node.data.type === 'trigger' ? Zap : Settings}
+                            />
                         </div>
                         <input
                             value={node.data.label}
@@ -603,7 +569,6 @@ export const NodeDetailsModal = ({
                                                                 placeholder={`Select ${input.label.toLowerCase()}...`}
                                                                 disabled={dynamicOptionQueries[schema.inputs.indexOf(input)]?.isLoading}
                                                                 className="w-full"
-                                                                itemIcon={input.name === 'spreadsheet_id' ? LogoGoogleSheets : undefined}
                                                             />
                                                         ) : input.type === 'credential' ? (
                                                             <CredentialInput
@@ -864,7 +829,7 @@ export const NodeDetailsModal = ({
                         </div>
                         <div className="h-4 w-px bg-border/50 mx-2" />
                         <div className="flex items-center gap-2 opacity-30 grayscale pointer-events-none">
-                            <LogoPython className="w-4 h-4 shadow-sm" />
+                            <Activity className="w-4 h-4 shadow-sm" />
                             <span className="text-[9px] font-black uppercase tracking-[0.2em]">Engine Instance Ready</span>
                         </div>
                     </div>

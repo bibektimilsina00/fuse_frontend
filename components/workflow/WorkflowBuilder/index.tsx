@@ -13,7 +13,7 @@ import { NodeTypeDefinition } from '@/types'
 // Nodes and Edges
 import { NodeDetailsModal } from './nodes'
 import { NODE_TYPES_MAP } from './nodes/registry'
-import { GenericActionNode, GenericTriggerNode, GenericLogicNode } from './nodes'
+import { GenericActionNode, GenericTriggerNode, GenericLogicNode, CircularNode } from './nodes'
 import CustomEdge from './CustomEdge'
 
 // Components
@@ -155,6 +155,8 @@ export function WorkflowBuilder({
                     // Determine component based on node kind/category
                     if (t.type === 'trigger') {
                         types[t.name] = GenericTriggerNode
+                    } else if (['AI_TOOL', 'AI_MEMORY', 'AI_CHAT_MODEL'].includes(t.category?.toUpperCase())) {
+                        types[t.name] = CircularNode
                     } else if (t.type === 'logic' || t.category === 'Logic') {
                         types[t.name] = GenericLogicNode
                     } else {
@@ -177,16 +179,19 @@ export function WorkflowBuilder({
 
     // --- Helpers ---
 
+    const [filterType, setFilterType] = useState<any>(null)
+
     const handlePaneClick = () => {
         setSelectedNode(null)
         setShowNodePanel(false)
         setSearchQuery('')
+        setFilterType(null)
     }
 
     // Listen for Quick Add Button events
     useEffect(() => {
         const handleAddNodeAfter = (e: any) => {
-            const { source, handleId, target, targetHandle, x, y } = e.detail || {}
+            const { source, handleId, target, targetHandle, x, y, filterType: ft } = e.detail || {}
             if (source || target) {
                 setPendingConnection({
                     source: source || undefined,
@@ -196,6 +201,7 @@ export function WorkflowBuilder({
                     x: x || 0,
                     y: y || 0
                 })
+                setFilterType(ft || null)
                 setShowNodePanel(true)
             }
         }
@@ -284,12 +290,14 @@ export function WorkflowBuilder({
                         setShowNodePanel(false)
                         setSplitEdge(null)
                         setPendingConnection(null)
+                        setFilterType(null)
                     }}
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
                     availableNodeTypes={availableNodeTypes as NodeTypeDefinition[]}
                     onAddNode={handleAddNode}
                     isWorkflowEmpty={nodes.length === 0}
+                    filterType={filterType}
                 />
 
                 {/* Node Configuration Modal */}
@@ -300,16 +308,16 @@ export function WorkflowBuilder({
                             schema={
                                 (availableNodeTypes || []).find((t: any) => {
                                     const nodeName = selectedNode.data?.node_name || selectedNode.type;
-                                    return t.name === nodeName;
-                                }) || {
+                                    return t.name === nodeName || (t as any).id === nodeName;
+                                }) as any || {
+                                    id: selectedNode.id || 'unknown',
                                     name: selectedNode.type || 'unknown',
-                                    label: selectedNode.data?.label || 'Node',
-                                    type: selectedNode.data?.type || 'action',
-                                    icon: 'Settings',
+                                    version: '1.0.0',
+                                    displayName: selectedNode.data?.label || 'Node',
                                     description: '',
+                                    category: 'ACTION',
                                     inputs: [],
-                                    outputs: [],
-                                    category: 'Custom'
+                                    outputs: []
                                 }
                             }
                             allNodes={nodes}

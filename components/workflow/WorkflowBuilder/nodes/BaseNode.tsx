@@ -16,8 +16,8 @@ import {
     Edit3, Activity, GitBranch, Timer, FileText, Loader2, AlertTriangle
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
-import { LogoGoogleSheets, LogoWhatsApp, LogoPython, LogoGitHub, LogoGitHubCopilot } from '../icons/BrandIcons'
 import { motion, AnimatePresence } from 'framer-motion'
+import { IconRenderer } from '../utils/iconMap'
 import { cn } from '@/lib/utils'
 import { QuickAddButton } from './QuickAddButton'
 import { validateNodeConfig, getValidationSummary } from '../utils/nodeValidation'
@@ -28,6 +28,7 @@ export interface BaseNodeData {
     label: string
     description?: string
     icon?: string
+    icon_svg?: string
     status?: 'idle' | 'running' | 'success' | 'failed' | 'pending' | 'warning'
     config?: Record<string, any>
     spec?: Record<string, any>
@@ -106,51 +107,14 @@ export const BaseNode = memo((props: BaseNodeProps) => {
     const getIcon = () => {
         if (props.icon) return <props.icon className="h-5 w-5" />
 
-        const nodeName = data.node_name || ''
-
-        const nodeIcons: Record<string, any> = {
-            // Triggers
-            'manual.trigger': PlayCircle,
-            'schedule.cron': Timer,
-            'webhook.receive': Webhook,
-            'whatsapp.trigger': LogoWhatsApp,
-            'email.trigger': Inbox,
-            'rss.trigger': Rss,
-
-            // AI
-            'ai.llm': Sparkles,
-            'ai.agent': Bot,
-
-            // Actions
-            'data.set': Edit3,
-            'data.transform': Shuffle,
-            'slack.send': MessageSquare,
-            'whatsapp.send': LogoWhatsApp,
-            'google_sheets.write': LogoGoogleSheets,
-            'google_sheets.read': LogoGoogleSheets,
-            'http.request': Globe,
-            'code.python': LogoPython,
-            'code.javascript': Code,
-            'email.send': Send,
-            'discord.send': Send,
-            'github.send': LogoGitHub,
-            'github_copilot.chat': LogoGitHubCopilot,
-
-            // Logic
-            'condition.if': Split,
-            'logic.parallel': GitBranch,
-            'logic.merge': GitMerge,
-            'logic.delay': Clock,
-            'logic.loop': RotateCw,
-            'logic.switch': Shuffle,
-            'logic.pause': PauseCircle,
-
-            // Utilities
-            'utility.noop': Activity
-        }
-
-        const IconComponent = nodeIcons[nodeName] || (data.type === 'trigger' ? Zap : Settings)
-        return <IconComponent className="h-5 w-5" />
+        return (
+            <IconRenderer
+                icon={data.spec?.icon || data.icon}
+                icon_svg={data.spec?.icon_svg || data.icon_svg}
+                className="h-5 w-5"
+                fallback={data.type === 'trigger' ? Zap : Settings}
+            />
+        )
     }
 
     const nodeColor = props.color || (data.type === 'trigger' ? '#ef4444' : '#3b82f6')
