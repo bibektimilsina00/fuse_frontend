@@ -289,7 +289,7 @@ export const BaseNode = memo((props: BaseNodeProps) => {
                     isRunning && "m-[1px] p-[11px]" // Slightly smaller to reveal the animated border
                 )}>
                     <div
-                        className="p-2 rounded-lg flex items-center justify-center text-white shrink-0"
+                        className="p-2 rounded-lg flex items-center justify-center text-white shrink-0 overflow-hidden"
                         style={{ backgroundColor: nodeColor }}
                     >
                         {getIcon()}
