@@ -2,7 +2,7 @@ import React from 'react';
 import EditNodeClient from './EditNodeClient';
 
 // For static export
-export const dynamicParams = false;
+export const dynamicParams = true;
 export async function generateStaticParams() {
     return [{ id: 'placeholder' }];
 }

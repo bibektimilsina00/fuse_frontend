@@ -32,7 +32,7 @@ export function useWorkflow(id: string) {
     return useQuery({
         queryKey: workflowKeys.detail(id),
         queryFn: () => workflowApi.getWorkflow(id),
-        enabled: !!id,
+        enabled: !!id && id !== 'new',
     })
 }
 

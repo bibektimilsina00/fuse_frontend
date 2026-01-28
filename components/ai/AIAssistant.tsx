@@ -171,13 +171,13 @@ const QUICK_ACTIONS = [
 ]
 
 const PROVIDER_ICONS: Record<string, string> = {
-    openai: '🤖',
-    anthropic: '🧠',
-    google: '✨',
-    deepseek: '🌊',
-    openrouter: '🌐',
-    copilot: '🐱',
-    default: '⚙️'
+    openai: '/assets/icons/credentials/ai/openai.svg',
+    anthropic: '/assets/icons/credentials/ai/anthropic.svg',
+    google: '/assets/icons/credentials/ai/gemini.svg',
+    deepseek: '/assets/icons/credentials/ai/ai_provider.svg',
+    openrouter: '/assets/icons/credentials/ai/openrouter.svg',
+    copilot: '/assets/icons/credentials/development/github_copilot.svg',
+    default: '/assets/icons/credentials/placeholder.svg'
 }
 
 import { type AIModel } from '@/services/api/ai'
@@ -250,9 +250,13 @@ function ModelSelector({ value, onChange, className, models }: ModelSelectorProp
                     )}
                 >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <span className="text-base shrink-0">
-                            {PROVIDER_ICONS[selectedModel.provider] || PROVIDER_ICONS.default}
-                        </span>
+                        <div className="h-5 w-5 shrink-0 flex items-center justify-center p-0.5">
+                            <img
+                                src={PROVIDER_ICONS[selectedModel.provider] || PROVIDER_ICONS.default}
+                                alt={selectedModel.provider}
+                                className="h-full w-full object-contain"
+                            />
+                        </div>
                         <span className="text-sm font-medium truncate">{selectedModel.label}</span>
                     </div>
                     <ChevronDown className={cn(
@@ -308,10 +312,14 @@ function ModelSelector({ value, onChange, className, models }: ModelSelectorProp
                                     >
                                         <div className="flex items-center gap-3 min-w-0 flex-1">
                                             <div className={cn(
-                                                "h-9 w-9 rounded-lg flex items-center justify-center text-lg shrink-0 transition-all",
+                                                "h-9 w-9 rounded-lg flex items-center justify-center p-2 shrink-0 transition-all",
                                                 value === model.id ? "bg-primary/20" : "bg-muted group-hover:bg-muted/80"
                                             )}>
-                                                {PROVIDER_ICONS[model.provider] || PROVIDER_ICONS.default}
+                                                <img
+                                                    src={PROVIDER_ICONS[model.provider] || PROVIDER_ICONS.default}
+                                                    alt={model.provider}
+                                                    className="h-full w-full object-contain"
+                                                />
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-sm font-medium truncate text-foreground">
@@ -350,10 +358,31 @@ export function AIAssistant({
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [showSettings, setShowSettings] = useState(false)
-    const [selectedModel, setSelectedModel] = useState('openai/gpt-4o-mini')
-    const [selectedCredentialId, setSelectedCredentialId] = useState('')
+    const [selectedModel, setSelectedModel] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('ai_assistant_model') || 'openai/gpt-4o-mini'
+        }
+        return 'openai/gpt-4o-mini'
+    })
+    const [selectedCredentialId, setSelectedCredentialId] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('ai_assistant_credential') || ''
+        }
+        return ''
+    })
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
     const [isMinimized, setIsMinimized] = useState(false)
+
+    // Persistence Effect
+    useEffect(() => {
+        if (selectedModel) {
+            localStorage.setItem('ai_assistant_model', selectedModel)
+        }
+    }, [selectedModel])
+
+    useEffect(() => {
+        localStorage.setItem('ai_assistant_credential', selectedCredentialId || '')
+    }, [selectedCredentialId])
 
     // Get the current messages based on mode
     const messages = mode === 'help' ? helpMessages : createMessages

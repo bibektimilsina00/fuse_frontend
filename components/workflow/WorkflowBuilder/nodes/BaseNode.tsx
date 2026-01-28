@@ -16,7 +16,7 @@ import {
     Edit3, Activity, GitBranch, Timer, FileText, Loader2, AlertTriangle
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
-import { LogoGoogleSheets, LogoWhatsApp, LogoPython } from '../icons/BrandIcons'
+import { LogoGoogleSheets, LogoWhatsApp, LogoPython, LogoGitHub, LogoGitHubCopilot } from '../icons/BrandIcons'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { QuickAddButton } from './QuickAddButton'
@@ -133,6 +133,8 @@ export const BaseNode = memo((props: BaseNodeProps) => {
             'code.javascript': Code,
             'email.send': Send,
             'discord.send': Send,
+            'github.send': LogoGitHub,
+            'github_copilot.chat': LogoGitHubCopilot,
 
             // Logic
             'condition.if': Split,

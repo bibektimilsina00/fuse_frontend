@@ -12,29 +12,55 @@ import {
     XCircle,
     Calendar,
     ArrowUpRight,
-    ArrowDownRight
+    ArrowDownRight,
+    Puzzle
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
+import { useAnalytics } from './hooks/useAnalytics'
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    Cell,
+    PieChart,
+    Pie
+} from 'recharts'
+
+const ICON_MAP: Record<string, any> = {
+    Zap,
+    CheckCircle2,
+    Clock,
+    XCircle,
+    Activity,
+    Puzzle
+}
 
 function StatCard({
     label,
     value,
     change,
     trend,
-    icon: Icon
+    iconName
 }: {
     label: string
     value: string
     change: string
     trend: 'up' | 'down'
-    icon: React.ComponentType<{ className?: string }>
+    iconName: string
 }) {
+    const Icon = ICON_MAP[iconName] || BarChart3
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card border border-border rounded-xl p-5"
+            className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-all duration-200"
         >
             <div className="flex items-center justify-between mb-4">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -54,33 +80,24 @@ function StatCard({
     )
 }
 
-function ChartPlaceholder({ title, height = 300 }: { title: string; height?: number }) {
-    return (
-        <div className="bg-card border border-border rounded-xl p-5">
-            <h3 className="font-semibold mb-4">{title}</h3>
-            <div
-                className="bg-muted/50 rounded-lg flex items-center justify-center"
-                style={{ height }}
-            >
-                <div className="text-center">
-                    <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Chart visualization</p>
-                    <p className="text-xs text-muted-foreground/60">Integrate with chart library</p>
+export default function AnalyticsPage() {
+    const { stats, chartData, topWorkflows, isLoading } = useAnalytics()
+    const timeRanges = ['24h', '7d', '30d', '90d', '1y']
+
+    if (isLoading) {
+        return (
+            <div className="space-y-8 max-w-[1600px] mx-auto animate-pulse">
+                <div className="h-20 bg-muted rounded-xl w-1/3" />
+                <div className="grid grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-muted rounded-xl" />)}
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                    <div className="h-[300px] bg-muted rounded-xl" />
+                    <div className="h-[300px] bg-muted rounded-xl" />
                 </div>
             </div>
-        </div>
-    )
-}
-
-export default function AnalyticsPage() {
-    const stats = [
-        { label: 'Total Executions', value: '12,458', change: '+12.5%', trend: 'up' as const, icon: Zap },
-        { label: 'Success Rate', value: '98.7%', change: '+2.1%', trend: 'up' as const, icon: CheckCircle2 },
-        { label: 'Avg. Duration', value: '1.8s', change: '-15%', trend: 'up' as const, icon: Clock },
-        { label: 'Failed Runs', value: '162', change: '-8.3%', trend: 'up' as const, icon: XCircle },
-    ]
-
-    const timeRanges = ['24h', '7d', '30d', '90d', '1y']
+        )
+    }
 
     return (
         <div className="space-y-8 max-w-[1600px] mx-auto">
@@ -92,12 +109,13 @@ export default function AnalyticsPage() {
                         Monitor workflow performance and usage metrics
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 bg-muted/30 p-1 rounded-lg border border-border">
                     {timeRanges.map(range => (
                         <Button
                             key={range}
-                            variant={range === '7d' ? 'default' : 'outline'}
+                            variant={range === '7d' ? 'default' : 'ghost'}
                             size="sm"
+                            className="h-8"
                         >
                             {range}
                         </Button>
@@ -108,59 +126,176 @@ export default function AnalyticsPage() {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat, i) => (
-                    <StatCard key={i} {...stat} />
+                    <StatCard key={i} {...stat} iconName={stat.icon} />
                 ))}
             </div>
 
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ChartPlaceholder title="Executions Over Time" height={300} />
-                <ChartPlaceholder title="Success vs Failed" height={300} />
+                {/* Area Chart: Executions over time */}
+                <div className="bg-card border border-border rounded-xl p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="font-semibold text-lg">Executions Over Time</h3>
+                        <div className="flex items-center gap-4 text-xs">
+                            <div className="flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-primary" />
+                                <span className="text-muted-foreground">Executions</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorExec" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: 'hsl(var(--card))',
+                                        borderColor: 'hsl(var(--border))',
+                                        borderRadius: '8px',
+                                        fontSize: '12px'
+                                    }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="executions"
+                                    stroke="hsl(var(--primary))"
+                                    strokeWidth={2}
+                                    fillOpacity={1}
+                                    fill="url(#colorExec)"
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Bar Chart: Success vs Failed */}
+                <div className="bg-card border border-border rounded-xl p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="font-semibold text-lg">Success vs Failed</h3>
+                        <div className="flex items-center gap-4 text-xs">
+                            <div className="flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                                <span className="text-muted-foreground">Success</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-red-500" />
+                                <span className="text-muted-foreground">Failed</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: 'hsl(var(--muted)/0.5)' }}
+                                    contentStyle={{
+                                        backgroundColor: 'hsl(var(--card))',
+                                        borderColor: 'hsl(var(--border))',
+                                        borderRadius: '8px',
+                                        fontSize: '12px'
+                                    }}
+                                />
+                                <Bar dataKey="success" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="failed" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
             </div>
 
             {/* Additional Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <ChartPlaceholder title="Top Workflows by Usage" height={250} />
                 <ChartPlaceholder title="Execution Duration Distribution" height={250} />
                 <ChartPlaceholder title="Hourly Activity" height={250} />
-            </div>
+            </div> */}
 
             {/* Table Section */}
-            <div className="bg-card border border-border rounded-xl p-5">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold">Top Performing Workflows</h3>
-                    <Button variant="ghost" size="sm">View All</Button>
+            <div className="bg-card border border-border rounded-xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 className="font-semibold text-lg">Top Performing Workflows</h3>
+                        <p className="text-sm text-muted-foreground">Most active workflows in the selected period</p>
+                    </div>
+                    <Button variant="outline" size="sm">Download PDF</Button>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-border">
-                                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Workflow</th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Executions</th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Success Rate</th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Avg Duration</th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Trend</th>
+                                <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">Workflow</th>
+                                <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">Executions</th>
+                                <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">Success Rate</th>
+                                <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">Avg Duration</th>
+                                <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">Trend</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {[
-                                { name: 'Email to CRM Pipeline', executions: 3420, success: 99.2, duration: '1.2s', trend: 'up' },
-                                { name: 'Slack Notifications', executions: 2890, success: 98.5, duration: '0.8s', trend: 'up' },
-                                { name: 'Daily Report Generator', executions: 1250, success: 97.8, duration: '3.5s', trend: 'down' },
-                                { name: 'Webhook Handler', executions: 980, success: 96.4, duration: '0.5s', trend: 'up' },
-                            ].map((row, i) => (
-                                <tr key={i} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
-                                    <td className="py-3 px-4 font-medium">{row.name}</td>
-                                    <td className="py-3 px-4 text-muted-foreground">{row.executions.toLocaleString()}</td>
-                                    <td className="py-3 px-4">
-                                        <span className="text-emerald-500">{row.success}%</span>
+                        <tbody className="divide-y divide-border/50">
+                            {topWorkflows.map((row, i) => (
+                                <tr key={i} className="group hover:bg-muted/30 transition-colors">
+                                    <td className="py-4 px-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                                {row.name.charAt(0)}
+                                            </div>
+                                            <span className="font-medium group-hover:text-primary transition-colors">{row.name}</span>
+                                        </div>
                                     </td>
-                                    <td className="py-3 px-4 text-muted-foreground font-mono">{row.duration}</td>
-                                    <td className="py-3 px-4">
+                                    <td className="py-4 px-4 text-muted-foreground">{row.executions.toLocaleString()}</td>
+                                    <td className="py-4 px-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden max-w-[100px]">
+                                                <div
+                                                    className="h-full bg-emerald-500 rounded-full"
+                                                    style={{ width: `${row.success}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-emerald-500 font-medium">{row.success}%</span>
+                                        </div>
+                                    </td>
+                                    <td className="py-4 px-4 text-muted-foreground font-mono text-xs">{row.duration}</td>
+                                    <td className="py-4 px-4">
                                         {row.trend === 'up' ? (
-                                            <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                            <div className="flex items-center gap-1 text-emerald-500">
+                                                <TrendingUp className="h-4 w-4" />
+                                                <span className="text-xs font-medium">Increasing</span>
+                                            </div>
                                         ) : (
-                                            <TrendingDown className="h-4 w-4 text-red-500" />
+                                            <div className="flex items-center gap-1 text-red-500">
+                                                <TrendingDown className="h-4 w-4" />
+                                                <span className="text-xs font-medium">Decreasing</span>
+                                            </div>
                                         )}
                                     </td>
                                 </tr>

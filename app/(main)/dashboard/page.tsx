@@ -30,14 +30,25 @@ import {
     Lock,
     Copy,
     RefreshCw,
-    Workflow
+    Workflow,
+    Box,
+    Sparkles
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/DropdownMenu'
 import { AICreateDialog } from '@/components/ai/AICreateDialog'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useDashboard } from './hooks/useDashboard'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { credentialsApi, Credential } from '@/services/api/credentials'
+import { useDeleteWorkflow } from '@/services/queries/workflows'
+import { CreateCredentialModal } from '@/components/credentials'
 import { cn } from '@/lib/utils'
 
 // ============================================================================
@@ -127,7 +138,8 @@ function WorkflowsTabContent({ workflows, searchQuery }: { workflows: any[]; sea
                     key={run.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="workflow-row"
+                    className="workflow-row cursor-pointer select-none group/row hover:border-primary/50"
+                    onDoubleClick={() => run.onEdit?.(run.id)}
                 >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className={cn(
@@ -138,8 +150,12 @@ function WorkflowsTabContent({ workflows, searchQuery }: { workflows: any[]; sea
                             run.status === 'pending' && "bg-amber-500"
                         )} />
                         <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">{run.workflow}</p>
-                            <p className="text-xs text-muted-foreground">{run.time}</p>
+                            <p className="font-medium text-sm truncate group-hover/row:text-primary transition-colors">{run.workflow}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-md">{run.description || 'No description'}</p>
+                            <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {run.time}
+                            </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -147,9 +163,30 @@ function WorkflowsTabContent({ workflows, searchQuery }: { workflows: any[]; sea
                             {run.duration}
                         </span>
                         <StatusBadge status={run.status} />
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => run.onEdit?.(run.id)}>
+                                    <Edit2 className="h-4 w-4 mr-2" />
+                                    Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { }}>
+                                    <Copy className="h-4 w-4 mr-2" />
+                                    Duplicate
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => run.onDelete?.(run.id)}
+                                >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </motion.div>
             ))}
@@ -182,18 +219,22 @@ function WorkflowsTabContent({ workflows, searchQuery }: { workflows: any[]; sea
 // ============================================================================
 // CREDENTIALS TAB CONTENT
 // ============================================================================
-const CREDENTIAL_TYPES: Record<string, { icon: string; color: string; label: string }> = {
-    google_sheets: { icon: '📊', color: 'bg-green-500/20 text-green-400', label: 'Google Sheets' },
-    slack: { icon: '💬', color: 'bg-purple-500/20 text-purple-400', label: 'Slack' },
-    discord: { icon: '🎮', color: 'bg-indigo-500/20 text-indigo-400', label: 'Discord' },
-    ai_provider: { icon: '🤖', color: 'bg-cyan-500/20 text-cyan-400', label: 'AI Provider' },
-    webhook: { icon: '🔗', color: 'bg-orange-500/20 text-orange-400', label: 'Webhook' },
-    api_key: { icon: '🔑', color: 'bg-amber-500/20 text-amber-400', label: 'API Key' },
-    default: { icon: '🔐', color: 'bg-gray-500/20 text-gray-400', label: 'Custom' }
+const CREDENTIAL_TYPES: Record<string, { iconPath: string; color: string; label: string }> = {
+    google_sheets: { iconPath: '/assets/icons/credentials/productivity/google_sheets.svg', color: 'bg-green-500/20 text-green-400', label: 'Google Sheets' },
+    slack: { iconPath: '/assets/icons/credentials/communication/slack.svg', color: 'bg-purple-500/20 text-purple-400', label: 'Slack' },
+    discord: { iconPath: '/assets/icons/credentials/communication/discord.svg', color: 'bg-indigo-500/20 text-indigo-400', label: 'Discord' },
+    ai_provider: { iconPath: '/assets/icons/credentials/ai/ai_provider.svg', color: 'bg-cyan-500/20 text-cyan-400', label: 'AI Provider' },
+    webhook: { iconPath: '/assets/icons/credentials/integration/webhook.svg', color: 'bg-orange-500/20 text-orange-400', label: 'Webhook' },
+    api_key: { iconPath: '/assets/icons/credentials/integration/api_key.svg', color: 'bg-amber-500/20 text-amber-400', label: 'API Key' },
+    github: { iconPath: '/assets/icons/credentials/development/github.svg', color: 'bg-slate-500/20 text-slate-400', label: 'GitHub' },
+    github_copilot: { iconPath: '/assets/icons/credentials/development/github_copilot.svg', color: 'bg-slate-500/20 text-slate-400', label: 'GitHub Copilot' },
+    default: { iconPath: '/assets/icons/credentials/placeholder.svg', color: 'bg-gray-500/20 text-gray-400', label: 'Custom' }
 }
 
 function CredentialsTabContent({ searchQuery }: { searchQuery: string }) {
     const queryClient = useQueryClient()
+    const [showCreateModal, setShowCreateModal] = useState(false)
+    const [editingCredential, setEditingCredential] = useState<Credential | null>(null)
     const { data: credentials = [], isLoading } = useQuery({
         queryKey: ['credentials'],
         queryFn: () => credentialsApi.getCredentials()
@@ -262,22 +303,35 @@ function CredentialsTabContent({ searchQuery }: { searchQuery: string }) {
                     >
                         <div className="flex items-start justify-between">
                             <div className="flex items-start gap-3">
-                                <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center text-lg", typeInfo.color)}>
-                                    {typeInfo.icon}
+                                <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center p-2", typeInfo.color)}>
+                                    <img src={typeInfo.iconPath} alt={typeInfo.label} className="h-full w-full object-contain" />
                                 </div>
                                 <div>
                                     <h3 className="font-medium text-foreground">{credential.name}</h3>
                                     <p className="text-sm text-muted-foreground mt-0.5">{typeInfo.label}</p>
                                 </div>
                             </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => deleteMutation.mutate(credential.id)}
-                            >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => {
+                                        setEditingCredential(credential)
+                                        setShowCreateModal(true)
+                                    }}
+                                >
+                                    <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                                    onClick={() => deleteMutation.mutate(credential.id)}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                         <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
                             <div className="flex items-center gap-1.5">
@@ -292,6 +346,14 @@ function CredentialsTabContent({ searchQuery }: { searchQuery: string }) {
                     </motion.div>
                 )
             })}
+            <CreateCredentialModal
+                isOpen={showCreateModal}
+                onClose={() => {
+                    setShowCreateModal(false)
+                    setEditingCredential(null)
+                }}
+                initialData={editingCredential}
+            />
         </div>
     )
 }
@@ -483,44 +545,57 @@ function DataTablesTabContent() {
 // MAIN DASHBOARD PAGE
 // ============================================================================
 export default function DashboardPage() {
-    const [activeTab, setActiveTab] = useState('Workflows')
-    const [searchQuery, setSearchQuery] = useState('')
-
+    const router = useRouter()
     const {
         stats: dataStats,
-        workflows: recentWorkflows,
-        handleAICreate
+        workflows: allWorkflows,
+        handleAICreate,
+        searchQuery,
+        setSearchQuery,
+        activeTab,
+        setActiveTab
     } = useDashboard()
 
+    const deleteWorkflow = useDeleteWorkflow()
+    const { data: credentials = [] } = useQuery({
+        queryKey: ['credentials'],
+        queryFn: () => credentialsApi.getCredentials()
+    })
+
     const stats = [
-        { label: 'Prod. executions', value: dataStats.totalExecutions.toLocaleString() },
-        { label: 'Failed prod. executions', value: '0' },
-        { label: 'Failure rate', value: '0%' },
-        { label: 'Time saved', value: '—' },
-        { label: 'Run time (avg.)', value: dataStats.avgExecutionTime || '0s' }
+        { label: 'Total Workflows', value: allWorkflows.length.toString() },
+        { label: 'Active', value: allWorkflows.filter(w => w.meta.status === 'active').length.toString() },
+        { label: 'Drafts', value: allWorkflows.filter(w => w.meta.status === 'draft').length.toString() },
+        { label: 'Total Credentials', value: credentials.length.toString() },
+        { label: 'Failure Rate', value: '0%' }
     ]
 
-    const recentRuns = recentWorkflows.slice(0, 5).map(w => ({
+    const recentRuns = allWorkflows.map(w => ({
         id: w.id,
         workflow: w.meta.name,
-        status: (w.meta.status === 'active' ? 'success' : 'failed') as 'success' | 'failed',
-        time: new Date(w.meta.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        duration: '1.2s'
+        workflow_name: w.meta.name,
+        description: w.meta.description,
+        status: (w.meta.status === 'active' ? 'success' : w.meta.status === 'draft' ? 'pending' : 'failed') as any,
+        time: new Date(w.meta.updated_at).toLocaleDateString() + ' ' + new Date(w.meta.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        started_at: w.meta.updated_at,
+        duration: '—',
+        onDelete: (id: string) => deleteWorkflow.mutate(id),
+        onEdit: (id: string) => router.push(`/workflows/${id}`)
     }))
 
     const tabs = ['Workflows', 'Credentials', 'Executions', 'Variables', 'Data tables']
 
     const renderTabContent = () => {
         switch (activeTab) {
-            case 'Workflows':
+            case 'workflows':
                 return <WorkflowsTabContent workflows={recentRuns} searchQuery={searchQuery} />
-            case 'Credentials':
+            case 'credentials':
                 return <CredentialsTabContent searchQuery={searchQuery} />
-            case 'Executions':
+            case 'executions':
                 return <ExecutionsTabContent workflows={recentRuns} searchQuery={searchQuery} />
-            case 'Variables':
+            case 'variables':
                 return <VariablesTabContent searchQuery={searchQuery} />
-            case 'Data tables':
+            case 'data tables':
                 return <DataTablesTabContent />
             default:
                 return <WorkflowsTabContent workflows={recentRuns} searchQuery={searchQuery} />
@@ -564,12 +639,12 @@ export default function DashboardPage() {
                             <button
                                 key={tab}
                                 onClick={() => {
-                                    setActiveTab(tab)
+                                    setActiveTab(tab.toLowerCase())
                                     setSearchQuery('') // Reset search when switching tabs
                                 }}
                                 className={cn(
                                     "pb-3 text-sm font-medium border-b-2 transition-colors",
-                                    activeTab === tab
+                                    activeTab === tab.toLowerCase()
                                         ? "border-primary text-primary"
                                         : "border-transparent text-muted-foreground hover:text-foreground"
                                 )}

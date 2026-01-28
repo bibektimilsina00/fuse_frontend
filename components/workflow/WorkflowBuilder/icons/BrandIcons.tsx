@@ -26,3 +26,11 @@ export const LogoPython = ({ className, style }: { className?: string, style?: R
         <path fill="#FFD43B" d="M16 29.5c-2.9 0-3.2-.3-4.4-.5-1.2-.2-2.6-.8-2.6-3.6v-.9h5.4v-1.8H6.5c-.9 0-2.2-.4-2.7-1.2-.6-.9-.5-2.5-.5-2.5l.1-4.3c.1-1.7 1.3-3 3-3h2.1v2.7c0 1.7 1.4 3.1 3.2 3.1h6.4c1.8 0 3.1-1.4 3.1-3.1v-2.7h2.1c1.7 0 3.1 1.4 3.1 3.1v4.3c0 1.8-.4 2.8-.9 3.6-.6.8-2 1.2-2.7 1.2h-.5v2.7c1.7 0 3.1 1.3 3.1 3s-1.4 3-3.1 3H16zm5-1.5c.8 0 1.5-.7 1.5-1.5s-.7-1.5-1.5-1.5-1.5.7-1.5 1.5.7 1.5 1.5 1.5z" />
     </svg>
 )
+
+export const LogoGitHub = ({ className, style }: { className?: string, style?: React.CSSProperties }) => (
+    <img src="/assets/icons/credentials/development/github.svg" className={className} style={style} alt="GitHub" />
+)
+
+export const LogoGitHubCopilot = ({ className, style }: { className?: string, style?: React.CSSProperties }) => (
+    <img src="/assets/icons/credentials/development/github_copilot.svg" className={className} style={style} alt="GitHub Copilot" />
+)

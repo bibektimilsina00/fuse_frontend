@@ -9,7 +9,8 @@ import NodeEditor from '../components/NodeEditor';
 export default function EditNodeClient({ nodeId }: { nodeId: string }) {
     const { data: node, isLoading, error } = useQuery({
         queryKey: ['node', nodeId],
-        queryFn: () => nodesApi.get(nodeId)
+        queryFn: () => nodesApi.get(nodeId),
+        enabled: nodeId !== 'new'
     });
 
     if (isLoading) {

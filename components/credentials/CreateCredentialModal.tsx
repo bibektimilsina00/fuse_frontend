@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X, Loader2, Search, ChevronRight, Copy, Check, ExternalLink, Download } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { credentialsApi } from '@/services/api/credentials'
+import { credentialsApi, Credential } from '@/services/api/credentials'
 import { pluginsApi } from '@/services/api/plugins'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +14,7 @@ interface CreateCredentialModalProps {
     onClose: () => void
     onSuccess?: (credentialId: string) => void
     defaultType?: string
+    initialData?: Credential | null
 }
 
 // Available apps/services for credentials
@@ -21,20 +22,20 @@ const CREDENTIAL_APPS = [
     {
         id: 'ai_provider',
         name: 'AI Provider',
-        icon: '🤖',
+        iconPath: '/assets/icons/credentials/ai/ai_provider.svg',
         description: 'OpenAI, Anthropic, Gemini, etc.',
         category: 'AI & ML',
         providers: [
-            { id: 'openai', label: 'OpenAI', icon: '🤖', needsBaseUrl: true },
-            { id: 'anthropic', label: 'Anthropic', icon: '🧠', needsBaseUrl: false },
-            { id: 'gemini', label: 'Google Gemini', icon: '💎', needsBaseUrl: false },
-            { id: 'openrouter', label: 'OpenRouter', icon: '🚀', needsBaseUrl: true },
+            { id: 'openai', label: 'OpenAI', iconPath: '/assets/icons/credentials/ai/openai.svg', needsBaseUrl: true },
+            { id: 'anthropic', label: 'Anthropic', iconPath: '/assets/icons/credentials/ai/anthropic.svg', needsBaseUrl: false },
+            { id: 'gemini', label: 'Google Gemini', iconPath: '/assets/icons/credentials/ai/gemini.svg', needsBaseUrl: false },
+            { id: 'openrouter', label: 'OpenRouter', iconPath: '/assets/icons/credentials/ai/openrouter.svg', needsBaseUrl: true },
         ]
     },
     {
         id: 'google_ai',
         name: 'Google AI / Gemini',
-        icon: '💎',
+        iconPath: '/assets/icons/credentials/ai/google_ai.svg',
         description: 'Premium Antigravity Models (OAuth)',
         category: 'AI & ML',
         isOAuth: true
@@ -42,7 +43,7 @@ const CREDENTIAL_APPS = [
     {
         id: 'github_copilot',
         name: 'GitHub Copilot',
-        icon: '🤖',
+        iconPath: '/assets/icons/credentials/development/github_copilot.svg',
         description: 'Login with GitHub Copilot',
         category: 'AI & ML',
         isOAuth: true
@@ -50,7 +51,7 @@ const CREDENTIAL_APPS = [
     {
         id: 'google_sheets',
         name: 'Google Sheets',
-        icon: '📊',
+        iconPath: '/assets/icons/credentials/productivity/google_sheets.svg',
         description: 'Spreadsheet automation',
         category: 'Productivity',
         isOAuth: true
@@ -58,7 +59,7 @@ const CREDENTIAL_APPS = [
     {
         id: 'slack',
         name: 'Slack',
-        icon: '💬',
+        iconPath: '/assets/icons/credentials/communication/slack.svg',
         description: 'Team communication',
         category: 'Communication',
         isOAuth: true
@@ -66,7 +67,7 @@ const CREDENTIAL_APPS = [
     {
         id: 'discord',
         name: 'Discord',
-        icon: '🎮',
+        iconPath: '/assets/icons/credentials/communication/discord.svg',
         description: 'Community platform',
         category: 'Communication',
         isOAuth: true
@@ -74,7 +75,7 @@ const CREDENTIAL_APPS = [
     {
         id: 'github',
         name: 'GitHub',
-        icon: '🐙',
+        iconPath: '/assets/icons/credentials/development/github.svg',
         description: 'Code repository',
         category: 'Development',
         isOAuth: true
@@ -82,27 +83,27 @@ const CREDENTIAL_APPS = [
     {
         id: 'webhook',
         name: 'Webhook',
-        icon: '🔗',
+        iconPath: '/assets/icons/credentials/integration/webhook.svg',
         description: 'HTTP webhooks',
         category: 'Integration'
     },
     {
         id: 'api_key',
         name: 'Generic API Key',
-        icon: '🔑',
+        iconPath: '/assets/icons/credentials/integration/api_key.svg',
         description: 'Any API key',
         category: 'Integration'
     },
     {
         id: 'database',
         name: 'Database',
-        icon: '🗄️',
+        iconPath: '/assets/icons/credentials/data/database.svg',
         description: 'SQL/NoSQL databases',
         category: 'Data'
     },
 ]
 
-export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType }: CreateCredentialModalProps) {
+export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType, initialData }: CreateCredentialModalProps) {
     const queryClient = useQueryClient()
     const [step, setStep] = useState<'select-app' | 'configure' | 'device-flow'>('select-app')
     const [searchQuery, setSearchQuery] = useState('')
@@ -117,6 +118,35 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
     const [apiKey, setApiKey] = useState('')
     const [baseUrl, setBaseUrl] = useState('')
 
+    // Initialize/Reset Effect
+    useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                const app = CREDENTIAL_APPS.find(a => a.id === initialData.type)
+                setSelectedApp(app || null)
+                setName(initialData.name)
+                // Map data fields based on type
+                const data = initialData.data || {}
+                if (initialData.type === 'ai_provider') {
+                    setProvider(data.provider || '')
+                    setApiKey(data.api_key || '')
+                    setBaseUrl(data.base_url || '')
+                } else if (initialData.type === 'webhook') {
+                    setApiKey(data.webhook_url || '')
+                    setBaseUrl(data.webhook_url || '')
+                } else {
+                    setApiKey(data.api_key || data.token || '')
+                }
+                setStep('configure')
+            } else if (defaultType) {
+                const app = CREDENTIAL_APPS.find(a => a.id === defaultType)
+                if (app) handleSelectApp(app)
+            }
+        } else {
+            // Reset on close handled in handleClose
+        }
+    }, [isOpen, initialData, defaultType])
+
     // Plugin Status Check
     const { data: plugin, refetch: refetchPlugin } = useQuery({
         queryKey: ['plugin', 'google-ai-antigravity'],
@@ -129,13 +159,6 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
         mutationFn: () => pluginsApi.performAction('google-ai-antigravity', 'install'),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['plugin', 'google-ai-antigravity'] })
-            // Start it too after install? Maybe let user do it or auto-start? 
-            // For now just install. The user can start it or we can chain it.
-            // Let's keep it simple: install, then they see "Service Stopped" -> Start (if we wanted full automation).
-            // But the requirement says "plugin should completely work". 
-            // Let's try to start it after install automatically in a real flow, but for now just getting it installed is the step.
-            // actually, if we want it to "completely work", we might want to auto-start after install.
-            // But let's stick to the requested "install button".
         }
     })
 
@@ -174,6 +197,18 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
         }
     })
 
+    const updateMutation = useMutation({
+        mutationFn: (data: { id: string; name: string; data: Record<string, string> }) =>
+            credentialsApi.updateCredential(data.id, { name: data.name, data: data.data }),
+        onSuccess: (updated) => {
+            queryClient.invalidateQueries({ queryKey: ['credentials'] })
+            if (onSuccess) {
+                onSuccess(updated.id)
+            }
+            handleClose()
+        }
+    })
+
     // Prepare Device Flow Logic
     const startDeviceFlowMutation = useMutation({
         mutationFn: () => credentialsApi.initiateGitHubCopilotDeviceFlow(),
@@ -191,15 +226,15 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
         if (!selectedApp) return
 
         if (selectedApp.id === 'google_ai' && !isPluginReady) {
-            return // Should be disabled anyway
+            return
         }
 
-        if (selectedApp.id === 'github_copilot') {
+        if (selectedApp.id === 'github_copilot' && !initialData) {
             startDeviceFlowMutation.mutate()
             return
         }
 
-        if (selectedApp.isOAuth) {
+        if (selectedApp.isOAuth && !initialData) {
             try {
                 setIsConnecting(true)
                 const res = await credentialsApi.getOAuthUrl(selectedApp.id)
@@ -217,15 +252,22 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
             return
         }
 
-        createMutation.mutate({
+        const payload = {
             name,
             type: selectedApp.id,
             data: {
                 api_key: apiKey,
                 ...(selectedApp.id === 'ai_provider' && { provider }),
-                ...(baseUrl && { base_url: baseUrl })
+                ...(baseUrl && { base_url: baseUrl }),
+                ...(selectedApp.id === 'webhook' && { webhook_url: apiKey })
             }
-        })
+        }
+
+        if (initialData) {
+            updateMutation.mutate({ id: initialData.id, ...payload })
+        } else {
+            createMutation.mutate(payload)
+        }
     }
 
     // Polling Effect
@@ -317,9 +359,10 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                 <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
                     <div>
                         <h2 className="text-lg font-semibold">
-                            {step === 'select-app' ? 'Select App' :
-                                step === 'device-flow' ? 'Connect GitHub Copilot' :
-                                    `Create ${selectedApp?.name} Credential`}
+                            {initialData ? `Edit ${selectedApp?.name} Credential` :
+                                step === 'select-app' ? 'Select App' :
+                                    step === 'device-flow' ? 'Connect GitHub Copilot' :
+                                        `Create ${selectedApp?.name} Credential`}
                         </h2>
                         <p className="text-sm text-muted-foreground mt-0.5">
                             {step === 'select-app'
@@ -371,8 +414,8 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                                                         onClick={() => handleSelectApp(app)}
                                                         className="flex items-start gap-3 p-4 bg-background border border-border rounded-lg hover:border-primary/50 hover:bg-muted/50 transition-all text-left group"
                                                     >
-                                                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-2xl shrink-0">
-                                                            {app.icon}
+                                                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center p-2 shrink-0">
+                                                            <img src={app.iconPath} alt={app.name} className="h-full w-full object-contain" />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center justify-between gap-2">
@@ -439,17 +482,19 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                     ) : (
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             {/* Back button */}
-                            <button
-                                type="button"
-                                onClick={() => setStep('select-app')}
-                                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 -ml-1"
-                            >
-                                <ChevronRight className="h-4 w-4 rotate-180" />
-                                Back to app selection
-                            </button>
+                            {!initialData && (
+                                <button
+                                    type="button"
+                                    onClick={() => setStep('select-app')}
+                                    className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 -ml-1"
+                                >
+                                    <ChevronRight className="h-4 w-4 rotate-180" />
+                                    Back to app selection
+                                </button>
+                            )}
 
                             {/* Credential Name */}
-                            {!selectedApp?.isOAuth && (
+                            {(initialData || !selectedApp?.isOAuth) && (
                                 <div>
                                     <label className="text-sm font-medium text-muted-foreground block mb-1.5">
                                         Credential Name
@@ -484,7 +529,7 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                                                         : "border-border bg-background hover:border-primary/50"
                                                 )}
                                             >
-                                                <span>{p.icon}</span>
+                                                <img src={p.iconPath} alt={p.label} className="h-5 w-5 object-contain" />
                                                 {p.label}
                                             </button>
                                         ))}
@@ -493,7 +538,7 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                             )}
 
                             {/* OAuth Notice */}
-                            {selectedApp?.isOAuth && (
+                            {selectedApp?.isOAuth && !initialData && (
                                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                                     <p className="text-sm text-foreground">
                                         <strong>Connection Required:</strong> You will be redirected to {selectedApp.name} to authorize access.
@@ -502,7 +547,7 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                             )}
 
                             {/* Google AI Plugin Notice */}
-                            {selectedApp?.id === 'google_ai' && (
+                            {selectedApp?.id === 'google_ai' && !initialData && (
                                 <div className={cn(
                                     "border rounded-lg p-4 mt-4 transition-colors",
                                     isPluginReady ? "bg-green-500/10 border-green-500/20" : "bg-amber-500/10 border-amber-500/20"
@@ -551,7 +596,7 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
                             )}
 
                             {/* API Key / Webhook URL */}
-                            {!selectedApp?.isOAuth && (
+                            {(initialData || !selectedApp?.isOAuth) && (
                                 <div>
                                     <label className="text-sm font-medium text-muted-foreground block mb-1.5">
                                         {selectedApp?.id === 'webhook' ? 'Webhook URL' : 'API Key / Token'}
@@ -585,27 +630,30 @@ export function CreateCredentialModal({ isOpen, onClose, onSuccess, defaultType 
 
                             {/* Actions */}
                             <div className="flex justify-end gap-3 pt-2">
-                                <Button type="button" variant="outline" onClick={() => setStep('select-app')}>
-                                    Back
-                                </Button>
+                                {!initialData && (
+                                    <Button type="button" variant="outline" onClick={() => setStep('select-app')}>
+                                        Back
+                                    </Button>
+                                )}
                                 <Button
                                     type="submit"
                                     disabled={
                                         (!selectedApp?.isOAuth && !name) ||
                                         (!selectedApp?.isOAuth && !apiKey) ||
                                         createMutation.isPending ||
+                                        updateMutation.isPending ||
                                         startDeviceFlowMutation.isPending ||
                                         isConnecting ||
                                         (selectedApp?.id === 'google_ai' && !isPluginReady)
                                     }
                                 >
-                                    {createMutation.isPending || startDeviceFlowMutation.isPending || isConnecting ? (
+                                    {createMutation.isPending || updateMutation.isPending || startDeviceFlowMutation.isPending || isConnecting ? (
                                         <>
                                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            {selectedApp?.isOAuth ? 'Connecting...' : 'Creating...'}
+                                            {selectedApp?.isOAuth ? 'Connecting...' : initialData ? 'Updating...' : 'Creating...'}
                                         </>
                                     ) : (
-                                        selectedApp?.isOAuth ? 'Connect' : 'Create'
+                                        selectedApp?.isOAuth && !initialData ? 'Connect' : initialData ? 'Update' : 'Create'
                                     )}
                                 </Button>
                             </div>

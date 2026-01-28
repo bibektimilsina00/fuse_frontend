@@ -17,16 +17,18 @@ interface CredentialSelectorProps {
     className?: string
 }
 
-const CREDENTIAL_ICONS: Record<string, string> = {
-    google_sheets: '📊',
-    slack: '💬',
-    discord: '🎮',
-    ai_provider: '🤖',
-    webhook: '🔗',
-    api_key: '🔑',
-    database: '🗄️',
-    github: '🐙',
-    default: '🔐'
+const CREDENTIAL_ICON_PATHS: Record<string, string> = {
+    google_sheets: '/assets/icons/credentials/productivity/google_sheets.svg',
+    slack: '/assets/icons/credentials/communication/slack.svg',
+    discord: '/assets/icons/credentials/communication/discord.svg',
+    ai_provider: '/assets/icons/credentials/ai/ai_provider.svg',
+    webhook: '/assets/icons/credentials/integration/webhook.svg',
+    api_key: '/assets/icons/credentials/integration/api_key.svg',
+    database: '/assets/icons/credentials/data/database.svg',
+    github: '/assets/icons/credentials/development/github.svg',
+    github_copilot: '/assets/icons/credentials/development/github_copilot.svg',
+    google_ai: '/assets/icons/credentials/ai/google_ai.svg',
+    default: '/assets/icons/credentials/placeholder.svg'
 }
 
 export function CredentialSelector({ value, onChange, filterType, placeholder = 'Select credential', className }: CredentialSelectorProps) {
@@ -108,9 +110,13 @@ export function CredentialSelector({ value, onChange, filterType, placeholder = 
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         {selectedCredential ? (
                             <>
-                                <span className="text-base shrink-0">
-                                    {CREDENTIAL_ICONS[selectedCredential.type] || CREDENTIAL_ICONS.default}
-                                </span>
+                                <div className="h-5 w-5 shrink-0 flex items-center justify-center p-0.5">
+                                    <img
+                                        src={CREDENTIAL_ICON_PATHS[selectedCredential.type] || CREDENTIAL_ICON_PATHS.default}
+                                        alt={selectedCredential.type}
+                                        className="h-full w-full object-contain"
+                                    />
+                                </div>
                                 <span className="text-sm font-medium truncate">{selectedCredential.name}</span>
                             </>
                         ) : (
@@ -196,10 +202,14 @@ export function CredentialSelector({ value, onChange, filterType, placeholder = 
                                         >
                                             <div className="flex items-center gap-3 min-w-0 flex-1">
                                                 <div className={cn(
-                                                    "h-9 w-9 rounded-lg flex items-center justify-center text-lg shrink-0 transition-all",
+                                                    "h-9 w-9 rounded-lg flex items-center justify-center p-2 shrink-0 transition-all",
                                                     value === credential.id ? "bg-primary/20" : "bg-muted group-hover:bg-muted/80"
                                                 )}>
-                                                    {CREDENTIAL_ICONS[credential.type] || CREDENTIAL_ICONS.default}
+                                                    <img
+                                                        src={CREDENTIAL_ICON_PATHS[credential.type] || CREDENTIAL_ICON_PATHS.default}
+                                                        alt={credential.type}
+                                                        className="h-full w-full object-contain"
+                                                    />
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <p className="text-sm font-medium truncate text-foreground">

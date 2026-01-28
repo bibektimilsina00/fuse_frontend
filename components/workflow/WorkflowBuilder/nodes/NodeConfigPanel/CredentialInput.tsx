@@ -11,7 +11,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogoWhatsApp, LogoPython, LogoGoogleSheets } from '../../icons/BrandIcons'
 import { workflowLogger } from '@/lib/logger'
 
 interface Credential {
@@ -368,10 +367,20 @@ export const CredentialInput: React.FC<CredentialInputProps> = ({
                                             className="space-y-6"
                                         >
                                             <div className="p-6 rounded-md border border-dashed border-border flex flex-col items-center gap-4 text-center">
-                                                <div className="h-16 w-16 rounded-xl bg-muted/50 flex items-center justify-center shadow-inner">
-                                                    {credentialType === 'google_sheets' && <LogoGoogleSheets className="w-8 h-8" />}
-                                                    {credentialType === 'slack' && <Zap className="w-8 h-8 text-[#E01E5A]" />}
-                                                    {credentialType === 'discord' && <Zap className="w-8 h-8 text-[#5865F2]" />}
+                                                <div className="h-16 w-16 rounded-xl bg-muted/50 flex items-center justify-center shadow-inner p-4">
+                                                    <img
+                                                        src={`/assets/icons/credentials/${credentialType === 'google_sheets' ? 'productivity' :
+                                                            ['slack', 'discord'].includes(credentialType) ? 'communication' :
+                                                                ['github', 'github_copilot'].includes(credentialType) ? 'development' :
+                                                                    ['ai_provider', 'google_ai'].includes(credentialType) ? 'ai' :
+                                                                        'integration'
+                                                            }/${credentialType}.svg`}
+                                                        alt={credentialType}
+                                                        className="h-full w-full object-contain"
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).src = '/assets/icons/credentials/placeholder.svg'
+                                                        }}
+                                                    />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <h4 className="text-xs font-bold uppercase tracking-wider">Fast Authentication</h4>

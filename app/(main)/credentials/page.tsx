@@ -20,25 +20,33 @@ import { CreateCredentialModal } from '@/components/credentials'
 import { cn } from '@/lib/utils'
 
 // Credential type icons and colors
-const CREDENTIAL_TYPES: Record<string, { icon: string; color: string; label: string }> = {
-    google_sheets: { icon: '📊', color: 'bg-green-500/20 text-green-400', label: 'Google Sheets' },
-    google_ai: { icon: '💎', color: 'bg-blue-500/20 text-blue-400', label: 'Google AI' },
-    github_copilot: { icon: '🤖', color: 'bg-indigo-500/20 text-indigo-100', label: 'GitHub Copilot' },
-    slack: { icon: '💬', color: 'bg-purple-500/20 text-purple-400', label: 'Slack' },
-    discord: { icon: '🎮', color: 'bg-indigo-500/20 text-indigo-400', label: 'Discord' },
-    ai_provider: { icon: '🤖', color: 'bg-cyan-500/20 text-cyan-400', label: 'AI Provider' },
-    webhook: { icon: '🔗', color: 'bg-orange-500/20 text-orange-400', label: 'Webhook' },
-    api_key: { icon: '🔑', color: 'bg-amber-500/20 text-amber-400', label: 'API Key' },
-    database: { icon: '🗄️', color: 'bg-blue-500/20 text-blue-400', label: 'Database' },
-    github: { icon: '🐙', color: 'bg-gray-500/20 text-gray-400', label: 'GitHub' },
-    default: { icon: '🔐', color: 'bg-gray-500/20 text-gray-400', label: 'Custom' }
+const CREDENTIAL_TYPES: Record<string, { iconPath: string; color: string; label: string }> = {
+    google_sheets: { iconPath: '/assets/icons/credentials/productivity/google_sheets.svg', color: 'bg-green-500/20 text-green-400', label: 'Google Sheets' },
+    google_ai: { iconPath: '/assets/icons/credentials/ai/google_ai.svg', color: 'bg-blue-500/20 text-blue-400', label: 'Google AI' },
+    github_copilot: { iconPath: '/assets/icons/credentials/development/github_copilot.svg', color: 'bg-indigo-500/20 text-indigo-100', label: 'GitHub Copilot' },
+    slack: { iconPath: '/assets/icons/credentials/communication/slack.svg', color: 'bg-purple-500/20 text-purple-400', label: 'Slack' },
+    discord: { iconPath: '/assets/icons/credentials/communication/discord.svg', color: 'bg-indigo-500/20 text-indigo-400', label: 'Discord' },
+    ai_provider: { iconPath: '/assets/icons/credentials/ai/ai_provider.svg', color: 'bg-cyan-500/20 text-cyan-400', label: 'AI Provider' },
+    webhook: { iconPath: '/assets/icons/credentials/integration/webhook.svg', color: 'bg-orange-500/20 text-orange-400', label: 'Webhook' },
+    api_key: { iconPath: '/assets/icons/credentials/integration/api_key.svg', color: 'bg-amber-500/20 text-amber-400', label: 'API Key' },
+    database: { iconPath: '/assets/icons/credentials/data/database.svg', color: 'bg-blue-500/20 text-blue-400', label: 'Database' },
+    github: { iconPath: '/assets/icons/credentials/development/github.svg', color: 'bg-gray-500/20 text-gray-400', label: 'GitHub' },
+    default: { iconPath: '/assets/icons/credentials/placeholder.svg', color: 'bg-gray-500/20 text-gray-400', label: 'Custom' }
 }
 
 function getCredentialType(type: string) {
     return CREDENTIAL_TYPES[type] || CREDENTIAL_TYPES.default
 }
 
-function CredentialCard({ credential, onDelete }: { credential: Credential; onDelete: (id: string) => void }) {
+function CredentialCard({
+    credential,
+    onDelete,
+    onEdit
+}: {
+    credential: Credential;
+    onDelete: (id: string) => void;
+    onEdit: (credential: Credential) => void;
+}) {
     const [showMenu, setShowMenu] = useState(false)
     const typeInfo = getCredentialType(credential.type)
 
@@ -50,8 +58,8 @@ function CredentialCard({ credential, onDelete }: { credential: Credential; onDe
         >
             <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                    <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center text-lg", typeInfo.color)}>
-                        {typeInfo.icon}
+                    <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center p-2", typeInfo.color)}>
+                        <img src={typeInfo.iconPath} alt={typeInfo.label} className="h-full w-full object-contain" />
                     </div>
                     <div>
                         <h3 className="font-medium text-foreground">{credential.name}</h3>
@@ -69,7 +77,13 @@ function CredentialCard({ credential, onDelete }: { credential: Credential; onDe
                     </Button>
                     {showMenu && (
                         <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-10 py-1 min-w-[140px]">
-                            <button className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors">
+                            <button
+                                onClick={() => {
+                                    onEdit(credential)
+                                    setShowMenu(false)
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-left"
+                            >
                                 <Edit2 className="h-4 w-4" />
                                 Edit
                             </button>
@@ -104,6 +118,7 @@ function CredentialCard({ credential, onDelete }: { credential: Credential; onDe
 export default function CredentialsPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [showCreateModal, setShowCreateModal] = useState(false)
+    const [editingCredential, setEditingCredential] = useState<Credential | null>(null)
     const queryClient = useQueryClient()
 
     const { data: credentials = [], isLoading } = useQuery({
@@ -133,7 +148,10 @@ export default function CredentialsPage() {
                         Manage your API keys, tokens, and OAuth connections
                     </p>
                 </div>
-                <Button onClick={() => setShowCreateModal(true)}>
+                <Button onClick={() => {
+                    setEditingCredential(null)
+                    setShowCreateModal(true)
+                }}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Credential
                 </Button>
@@ -182,7 +200,10 @@ export default function CredentialsPage() {
                     <p className="text-muted-foreground text-sm mb-6 max-w-sm">
                         Add your first credential to connect external services to your workflows
                     </p>
-                    <Button onClick={() => setShowCreateModal(true)}>
+                    <Button onClick={() => {
+                        setEditingCredential(null)
+                        setShowCreateModal(true)
+                    }}>
                         <Plus className="h-4 w-4 mr-2" />
                         Add Credential
                     </Button>
@@ -194,6 +215,10 @@ export default function CredentialsPage() {
                             key={credential.id}
                             credential={credential}
                             onDelete={id => deleteMutation.mutate(id)}
+                            onEdit={(cred) => {
+                                setEditingCredential(cred)
+                                setShowCreateModal(true)
+                            }}
                         />
                     ))}
                 </div>
@@ -201,7 +226,11 @@ export default function CredentialsPage() {
 
             <CreateCredentialModal
                 isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
+                onClose={() => {
+                    setShowCreateModal(false)
+                    setEditingCredential(null)
+                }}
+                initialData={editingCredential}
             />
         </div>
     )
