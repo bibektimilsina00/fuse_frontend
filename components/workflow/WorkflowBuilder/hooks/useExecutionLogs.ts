@@ -174,6 +174,25 @@ export function useExecutionLogs(nodes: any[], setNodes: Dispatch<SetStateAction
                 type: 'info',
                 message: `Workflow execution started.`,
             }])
+        } else if (message.type === 'info') {
+            setLogs(prev => [...prev, {
+                id: Math.random().toString(36),
+                timestamp,
+                type: 'info',
+                message: message.data?.message || 'System message received',
+                data: message.data
+            }])
+        } else {
+            // Log unknown message types for debugging if they have a message string
+            if (message.message || message.data?.message) {
+                setLogs(prev => [...prev, {
+                    id: Math.random().toString(36),
+                    timestamp,
+                    type: 'info',
+                    message: message.message || message.data?.message,
+                    data: message.data
+                }])
+            }
         }
     }, [setNodes, toast])
 
