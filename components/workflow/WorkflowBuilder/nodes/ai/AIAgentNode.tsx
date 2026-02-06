@@ -23,7 +23,7 @@ const CONFIG = {
 export const AIAgentNode = memo((props: NodeProps<BaseActionNodeData>) => {
     const { data, isConnectable, selected, id } = props
     const [showToolbar, setShowToolbar] = useState(false)
-    const { setNodes, setEdges } = useReactFlow()
+    const { setNodes, setEdges, getNodes } = useReactFlow()
     const { toast } = useToast()
     const { data: nodeTypes = [] } = useNodeTypes()
 
@@ -134,6 +134,11 @@ export const AIAgentNode = memo((props: NodeProps<BaseActionNodeData>) => {
                             isConnectable={isConnectable}
                             color="#9ca3af"
                             style={{ top: '-10px', left: '50%', transform: 'translateX(-50%)' }}
+                            isValidConnection={(connection) => {
+                                const sourceNode = setNodes ? getNodes().find(n => n.id === connection.source) : null;
+                                const nodeType = nodeTypes.find(t => t.name === sourceNode?.data?.node_name);
+                                return nodeType?.category === 'AI_CHAT_MODEL';
+                            }}
                         />
                         <QuickAddButton
                             nodeId={id}
@@ -156,6 +161,11 @@ export const AIAgentNode = memo((props: NodeProps<BaseActionNodeData>) => {
                             isConnectable={isConnectable}
                             color="#9ca3af"
                             style={{ top: '-10px', left: '50%', transform: 'translateX(-50%)' }}
+                            isValidConnection={(connection) => {
+                                const sourceNode = setNodes ? getNodes().find(n => n.id === connection.source) : null;
+                                const nodeType = nodeTypes.find(t => t.name === sourceNode?.data?.node_name);
+                                return nodeType?.category === 'AI_MEMORY';
+                            }}
                         />
                         <QuickAddButton
                             nodeId={id}
@@ -178,6 +188,11 @@ export const AIAgentNode = memo((props: NodeProps<BaseActionNodeData>) => {
                             isConnectable={isConnectable}
                             color="#9ca3af"
                             style={{ top: '-10px', left: '50%', transform: 'translateX(-50%)' }}
+                            isValidConnection={(connection) => {
+                                const sourceNode = setNodes ? getNodes().find(n => n.id === connection.source) : null;
+                                const nodeType = nodeTypes.find(t => t.name === sourceNode?.data?.node_name);
+                                return nodeType?.category === 'AI_TOOL';
+                            }}
                         />
                         <QuickAddButton
                             nodeId={id}

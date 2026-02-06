@@ -5,12 +5,38 @@ import { cn } from '@/lib/utils'
 
 type IconComponent = LucideIcon | ComponentType<{ className?: string }>
 
+const ICON_MAPPING: Record<string, string> = {
+    'whatsapp': 'MessageCircle',
+    'google_sheets': 'Sheet',
+    'spreadsheet': 'Sheet',
+    'google': 'Globe',
+    'notion': 'FileText',
+    'telegram': 'Send',
+    'email': 'Mail',
+    'discord': 'MessageSquare',
+    'slack': 'Slack',
+    'cron': 'Clock',
+    'schedule': 'Clock',
+    'webhook': 'Webhook',
+    'form': 'FileText',
+    'manual': 'MousePointerClick',
+    'database': 'Database',
+}
+
 /**
  * Gets a Lucide icon component by its name.
  * Handles case-insensitive matches and returns a fallback if not found.
  */
 export const getIconByName = (name?: string): LucideIcon => {
     if (!name) return Settings
+
+    const lowerName = name.toLowerCase()
+
+    // Check mapping first
+    if (ICON_MAPPING[lowerName]) {
+        const mappedName = ICON_MAPPING[lowerName]
+        if ((LucideIcons as any)[mappedName]) return (LucideIcons as any)[mappedName]
+    }
 
     // Try exact match
     if ((LucideIcons as any)[name]) return (LucideIcons as any)[name]
@@ -21,7 +47,7 @@ export const getIconByName = (name?: string): LucideIcon => {
 
     // Search case-insensitive
     const keys = Object.keys(LucideIcons)
-    const match = keys.find(k => k.toLowerCase() === name.toLowerCase())
+    const match = keys.find(k => k.toLowerCase() === lowerName)
     if (match) return (LucideIcons as any)[match]
 
     return Settings

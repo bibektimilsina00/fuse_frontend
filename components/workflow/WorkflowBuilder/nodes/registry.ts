@@ -4,7 +4,7 @@ import {
     GenericLogicNode,
     BaseNode,
     AIAgentNode,
-    CircularNode
+    AIAuxiliaryNode
 } from './index'
 
 // Node types must match the backend Python node definitions exactly
@@ -20,7 +20,8 @@ export const NODE_TYPES_MAP = {
     trigger: GenericTriggerNode,
     action: GenericActionNode,
     logic: GenericLogicNode,
-    circular: CircularNode,
+    circular: AIAuxiliaryNode,
+    ai_auxiliary: AIAuxiliaryNode,
     default: BaseNode,
 }
 

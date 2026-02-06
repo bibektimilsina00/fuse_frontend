@@ -128,9 +128,9 @@ export function useWorkflowBuilder({
             // This ensures proper rendering while preserving the actual node_name in data
             let reactFlowType = (nodeName && nodeName !== 'unknown') ? nodeName : 'default'
 
-            // If it's an auxiliary node (Model, Tool, Memory), use CircularNode unless it has a specialized component
+            // If it's an auxiliary node (Model, Tool, Memory), use AIAuxiliaryNode unless it has a specialized component
             if (nodeType?.connectionType === 'auxiliary' && !(NODE_TYPES_MAP as Record<string, any>)[reactFlowType]) {
-                reactFlowType = 'circular'
+                reactFlowType = 'ai_auxiliary'
             }
 
             if (!n.spec || !n.ui || !n.ui.position) {

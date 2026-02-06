@@ -18,6 +18,7 @@ interface NodeHandleProps {
     color?: string
     handleId?: string
     style?: React.CSSProperties
+    isValidConnection?: (connection: any) => boolean
 }
 
 export const NodeHandle = memo(({
@@ -26,7 +27,8 @@ export const NodeHandle = memo(({
     isConnectable = true,
     color = '#9ca3af',
     handleId,
-    style
+    style,
+    isValidConnection
 }: NodeHandleProps) => {
     const [isHovering, setIsHovering] = useState(false)
 
@@ -45,6 +47,7 @@ export const NodeHandle = memo(({
             position={position}
             id={handleId}
             isConnectable={isConnectable}
+            isValidConnection={isValidConnection}
             className="!w-4 !h-4 !bg-transparent !border-none z-50 p-0"
             style={defaultStyle}
             onMouseEnter={() => setIsHovering(true)}

@@ -3,15 +3,27 @@
 import { memo, useState } from 'react'
 import { Position, NodeProps, useReactFlow } from 'reactflow'
 import { cn } from '@/lib/utils'
+import { useNodeTypes } from '@/services/queries/workflows'
+import { NodeTypeDefinition } from '@/types'
 import { IconRenderer } from '../../utils/iconMap'
 import { NodeHandle, StatusIndicator, RunningBorder, NodeToolbar } from './'
 
-export const CircularNode = memo(({ data, selected, isConnectable, id }: NodeProps) => {
+export const AIAuxiliaryNode = memo(({ data, selected, isConnectable, id }: NodeProps) => {
     const [showToolbar, setShowToolbar] = useState(false)
     const { setNodes, setEdges } = useReactFlow()
+    const { data: nodeTypes = [] } = useNodeTypes()
+
+    // Find definition for proper naming
+    const definition = (nodeTypes as NodeTypeDefinition[]).find(t => t.name === data.node_name)
+
     const isRunning = data.status === 'running'
     const isPaused = data.settings?.isPaused || false
     const color = data.color || '#8b5cf6'
+
+    // Display name logic: label (user-set) or definition label
+    const displayName = data.label || definition?.label || 'Node'
+    // Subtitle logic: category or last part of node_name
+    const subtitle = definition?.category?.replace('AI_', '') || data.node_name?.split('.').pop() || 'Node'
 
     const handleExecute = async () => {
         if (data.executeNode) {
@@ -84,20 +96,24 @@ export const CircularNode = memo(({ data, selected, isConnectable, id }: NodePro
                     <NodeHandle
                         type="source"
                         position={Position.Top}
-                        handleId="auxiliary"
+                        handleId={definition?.outputs?.[0]?.name || 'output'}
                         isConnectable={isConnectable}
                         color={color}
                         style={{ top: '-8px', zIndex: 100 }}
                     />
                 </div>
 
-                {/* label below */}
-                <span className="text-[10px] font-bold text-foreground uppercase tracking-widest opacity-70 text-center max-w-[80px] line-clamp-1">
-                    {data.label || 'Node'}
-                </span>
+                <div className="flex flex-col items-center px-1 max-w-[100px]">
+                    <span className="text-[11px] font-bold text-foreground text-center line-clamp-1 group-hover:text-primary transition-colors">
+                        {displayName}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-mono opacity-50">
+                        {subtitle}
+                    </span>
+                </div>
             </div>
         </div>
     )
 })
 
-CircularNode.displayName = 'CircularNode'
+AIAuxiliaryNode.displayName = 'AIAuxiliaryNode'

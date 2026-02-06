@@ -13,7 +13,7 @@ import { NodeTypeDefinition } from '@/types'
 // Nodes and Edges
 import { NodeDetailsModal } from './nodes'
 import { NODE_TYPES_MAP } from './nodes/registry'
-import { GenericActionNode, GenericTriggerNode, GenericLogicNode, CircularNode } from './nodes'
+import { GenericActionNode, GenericTriggerNode, GenericLogicNode, AIAuxiliaryNode } from './nodes'
 import CustomEdge from './CustomEdge'
 
 // Components
@@ -156,7 +156,7 @@ export function WorkflowBuilder({
                     if (t.type === 'trigger') {
                         types[t.name] = GenericTriggerNode
                     } else if (['AI_TOOL', 'AI_MEMORY', 'AI_CHAT_MODEL'].includes(t.category?.toUpperCase())) {
-                        types[t.name] = CircularNode
+                        types[t.name] = AIAuxiliaryNode
                     } else if (t.type === 'logic' || t.category === 'Logic') {
                         types[t.name] = GenericLogicNode
                     } else {

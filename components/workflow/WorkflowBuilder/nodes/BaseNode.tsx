@@ -59,7 +59,7 @@ export const BaseNode = memo((props: BaseNodeProps) => {
     const [isHoveringOutput, setIsHoveringOutput] = useState(false)
     const [showWarningTooltip, setShowWarningTooltip] = useState(false)
     const [showErrorTooltip, setShowErrorTooltip] = useState(false)
-    const { setNodes, setEdges } = useReactFlow()
+    const { setNodes, setEdges, getNodes } = useReactFlow()
 
     const isRunning = data.status === 'running'
     const hasSuccess = data.status === 'success'
@@ -329,6 +329,12 @@ export const BaseNode = memo((props: BaseNodeProps) => {
                         type="target"
                         position={Position.Left}
                         isConnectable={isConnectable}
+                        isValidConnection={(connection) => {
+                            const sourceNode = getNodes().find(n => n.id === connection.source);
+                            // Reject if source is an auxiliary node (unless explicitly allowed, but BaseNode is generic)
+                            const nodeType = nodeTypes.find(t => t.name === sourceNode?.data?.node_name);
+                            return nodeType?.connectionType !== 'auxiliary';
+                        }}
                         className="!w-4 !h-4 !bg-transparent !border-none z-50 p-0"
                         style={{ left: '-8px', top: '50%', transform: 'translateY(-50%)' }}
                         onMouseEnter={() => setIsHoveringInput(true)}

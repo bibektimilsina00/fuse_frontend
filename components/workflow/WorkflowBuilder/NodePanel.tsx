@@ -7,6 +7,7 @@ import { memo, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { IconRenderer } from './utils/iconMap'
 import { NodeTypeDefinition } from '@/types'
+import { cn } from '@/lib/utils'
 
 interface NodePanelProps {
     isOpen: boolean
@@ -73,7 +74,7 @@ export const NodePanel = memo(({
         // 3. Workflow Empty - show triggers only
         if (isWorkflowEmpty) {
             if (view === 'app_triggers') {
-                return nodes.filter(n => n.type === 'trigger' && n.service !== 'core')
+                return nodes.filter(n => n.type === 'trigger' && n.service !== 'core' && !['manual.trigger', 'schedule.cron', 'webhook.receive'].includes(n.name || n.id))
             }
             return []
         }
@@ -140,7 +141,7 @@ export const NodePanel = memo(({
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                         {isShowingList ? (
-                            <div className="grid grid-cols-1 gap-3">
+                            <div className="grid grid-cols-3 gap-3">
                                 {filteredNodes.map(node => (
                                     <button
                                         key={node.name}
@@ -148,9 +149,10 @@ export const NodePanel = memo(({
                                             onAddNode(node)
                                             onClose()
                                         }}
-                                        className="flex items-start gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-accent/50 transition-all text-left group"
+                                        title={node.description}
+                                        className="flex flex-col items-center justify-center p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-accent/50 transition-all text-center group gap-3 aspect-square min-h-[120px]"
                                     >
-                                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-all p-2 overflow-hidden">
+                                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-all p-2.5 overflow-hidden">
                                             <IconRenderer
                                                 icon={node.icon}
                                                 icon_svg={node.icon_svg}
@@ -158,67 +160,75 @@ export const NodePanel = memo(({
                                                 fallback={node.type === 'trigger' ? Zap : Settings}
                                             />
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-semibold text-foreground tracking-tight">{node.label}</div>
-                                            <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed opacity-80">{node.description}</p>
+                                        <div className="font-semibold text-foreground tracking-tight text-[11px] leading-tight break-words line-clamp-2 px-1">
+                                            {node.label}
                                         </div>
                                     </button>
                                 ))}
                                 {filteredNodes.length === 0 && (
-                                    <div className="text-center py-12">
+                                    <div className="col-span-3 text-center py-12">
                                         <div className="h-12 w-12 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
                                             <Search className="h-6 w-6 text-muted-foreground" />
                                         </div>
-                                        <p className="text-sm text-muted-foreground">No nodes found in this category.</p>
+                                        <p className="text-sm text-muted-foreground">No nodes found.</p>
                                     </div>
                                 )}
                             </div>
                         ) : (
                             <div className="space-y-4">
                                 {isWorkflowEmpty ? (
-                                    <div className="grid grid-cols-1 gap-3">
+                                    <div className="grid grid-cols-2 gap-3">
                                         <CategoryButton
                                             icon={MousePointerClick}
-                                            title="Trigger manually"
-                                            description="Run the flow manually with a button click"
+                                            title="Manual"
                                             onClick={() => {
                                                 const n = availableNodeTypes.find(v => (v.name || v.id) === 'manual.trigger')
                                                 if (n) { onAddNode(n); onClose(); }
                                             }}
+                                            isTall
                                         />
                                         <CategoryButton
                                             icon={LayoutGrid}
-                                            title="On app event"
-                                            description="WhatsApp, Slack, Email, and more..."
+                                            title="App Events"
                                             onClick={() => setView('app_triggers')}
                                             hasChevron
+                                            isTall
                                         />
                                         <CategoryButton
                                             icon={Clock}
-                                            title="On a schedule"
-                                            description="Run every hour, day, or custom interval"
+                                            title="Schedule"
                                             onClick={() => {
                                                 const n = availableNodeTypes.find(v => (v.name || v.id) === 'schedule.cron')
                                                 if (n) { onAddNode(n); onClose(); }
                                             }}
+                                            isTall
                                         />
                                         <CategoryButton
                                             icon={Webhook}
-                                            title="On webhook call"
-                                            description="Run when an HTTP request is received"
+                                            title="Webhook"
                                             onClick={() => {
                                                 const n = availableNodeTypes.find(v => (v.name || v.id) === 'webhook.receive')
                                                 if (n) { onAddNode(n); onClose(); }
                                             }}
+                                            isTall
                                         />
                                         <CategoryButton
-                                            icon={Zap}
-                                            title="Other ways"
-                                            description="Misc triggers like Forms or Chatbot"
+                                            icon={FileText}
+                                            title="Forms"
                                             onClick={() => {
-                                                const filtered = availableNodeTypes.filter(n => n.type === 'trigger' && !['manual.trigger', 'schedule.cron', 'webhook.receive'].includes(n.name || n.id))
-                                                if (filtered.length > 0) setSearchQuery(' ');
+                                                const n = availableNodeTypes.find(v => (v.name || v.id) === 'form.trigger')
+                                                if (n) { onAddNode(n); onClose(); }
                                             }}
+                                            isTall
+                                        />
+                                        <CategoryButton
+                                            icon={Database}
+                                            title="Data Tables"
+                                            onClick={() => {
+                                                const n = availableNodeTypes.find(v => (v.name || v.id) === 'core.data_table.trigger')
+                                                if (n) { onAddNode(n); onClose(); }
+                                            }}
+                                            isTall
                                         />
                                     </div>
                                 ) : (
@@ -226,40 +236,33 @@ export const NodePanel = memo(({
                                         <CategoryButton
                                             icon={Bot}
                                             title="AI"
-                                            description="Agents, Models, Memory, and Tools"
                                             onClick={() => setView('ai')}
                                             hasChevron
                                         />
                                         <CategoryButton
                                             icon={Globe}
-                                            title="Action in an app"
-                                            description="Sheets, Telegram, Notion, etc."
+                                            title="Integrations"
                                             onClick={() => setView('actions')}
                                             hasChevron
                                         />
                                         <CategoryButton
                                             icon={Terminal}
-                                            title="Core & Utilities"
-                                            description="HTTP, Code, Data Transform"
+                                            title="Utilities"
                                             onClick={() => setView('utilities')}
                                             hasChevron
                                         />
                                         <CategoryButton
                                             icon={GitBranch}
-                                            title="Logic & Flow"
-                                            description="If/Else, Loops, Switch"
+                                            title="Logic"
                                             onClick={() => setView('logic')}
                                             hasChevron
                                         />
                                         <div className="pt-4 mt-4 border-t border-border">
                                             <CategoryButton
                                                 icon={Zap}
-                                                title="Add another trigger"
-                                                description="Start from multiple entry points"
-                                                onClick={() => {
-                                                    // Use searching empty space as trigger filter hack
-                                                    setSearchQuery('trigger')
-                                                }}
+                                                title="Triggers"
+                                                onClick={() => setSearchQuery('trigger')}
+                                                hasChevron
                                             />
                                         </div>
                                     </div>
@@ -277,25 +280,30 @@ export const NodePanel = memo(({
 interface CategoryButtonProps {
     icon: any
     title: string
-    description: string
     onClick: () => void
     hasChevron?: boolean
+    isTall?: boolean
 }
 
-const CategoryButton = ({ icon: Icon, title, description, onClick, hasChevron }: CategoryButtonProps) => (
+const CategoryButton = ({ icon: Icon, title, onClick, hasChevron, isTall }: CategoryButtonProps) => (
     <button
         onClick={onClick}
-        className="w-full flex items-start gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-accent/50 transition-all text-left group"
+        className={cn(
+            "flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-accent/50 transition-all text-left group w-full",
+            isTall && "flex-col justify-center items-center text-center gap-3 h-32"
+        )}
     >
-        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-all">
-            <Icon className="h-5 w-5 text-primary" />
+        <div className={cn(
+            "rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-all",
+            isTall ? "h-12 w-12 p-2.5" : "h-10 w-10 p-2"
+        )}>
+            <Icon className={cn("text-primary", isTall ? "h-6 w-6" : "h-5 w-5")} />
         </div>
-        <div className="flex-1 min-w-0 pr-2">
+        <div className="flex-1 min-w-0 pr-1">
             <div className="flex items-center justify-between">
                 <span className="font-semibold text-foreground tracking-tight">{title}</span>
-                {hasChevron && <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />}
+                {hasChevron && !isTall && <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />}
             </div>
-            <p className="text-xs text-muted-foreground mt-1 leading-relaxed opacity-80">{description}</p>
         </div>
     </button>
 )
